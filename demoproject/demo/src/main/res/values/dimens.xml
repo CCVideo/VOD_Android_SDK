@@ -1,0 +1,15 @@
+<resources>
+
+    <!-- Default screen margins, per the Android Design guidelines. -->
+
+    <dimen name="popmenu_width">100.0dip</dimen>
+    <dimen name="popmenu_height">60.0dip</dimen>
+    <dimen name="popmenu_speed_height">120.0dip</dimen>
+    <dimen name="popmenu_yoff">5.0dip</dimen>
+
+    <dimen name="ad_tv_margin_top_bottom">10dp</dimen>
+    <dimen name="ad_tv_margin_left_right">10dp</dimen>
+
+    <dimen name="qa_view_radio_button_size">12sp</dimen>
+
+</resources>

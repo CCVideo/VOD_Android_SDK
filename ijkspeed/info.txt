@@ -1,0 +1,5 @@
+1. 需要使用的类为DWIjkMediaPlayer
+2. 倍速方法为setSpeed()
+3. 所有player的回调，第一个参数类型由MediaPlayer变为IMediaPlayer
+
+注：CCSDK为cc的jar包，ijkjava.jar为ijk的jar包，里面做了一些继承处理，所以如果有冲突，请尽量用cc提供的ijk的jar包，不然player是无法使用的。

@@ -1,0 +1,15 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+
+    <item
+        android:id="@+id/accountInfo"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom"
+        android:icon="@drawable/account"
+        android:title="@string/action_settings"/>
+    <item
+        android:id="@+id/downloadItem"
+        android:icon="@drawable/offline"
+        android:showAsAction="ifRoom"
+        android:title="@string/download"/>
+
+</menu>
