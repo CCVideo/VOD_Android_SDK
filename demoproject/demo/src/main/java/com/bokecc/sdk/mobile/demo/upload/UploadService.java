@@ -230,6 +230,11 @@ public class UploadService extends Service {
 				
 				Log.i("upload service", "finish.");
 				break;
+			//上传失败
+			case Uploader.FAIL:
+				sendBroadcast(intent);
+				Log.i("upload service", "fail.");
+				break;
 			}
 
 		}
@@ -284,6 +289,11 @@ public class UploadService extends Service {
 			stopSelf();
 			resetUploadService();
 			notificationManager.cancel(NOTIFY_ID);
+		}
+
+		@Override
+		public void onVideoInfoUpdate(VideoInfo videoInfo) {
+
 		}
 	};
 

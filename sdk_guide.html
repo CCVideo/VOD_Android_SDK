@@ -397,7 +397,7 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </head>
 <body>
 <h1 id="cc视频-android-sdk-使用说明">CC视频 Android SDK 使用说明</h1>
-<p>日期：2018-04-17</p>
+<p>日期：2018-05-15</p>
 <table>
 <thead>
 <tr class="header">
@@ -407,20 +407,13 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 </thead>
 <tbody>
 <tr class="odd">
-<td>v2.13.1</td>
-<td>1. 解决了三星个别机型不能播放加密视频的问题</td>
+<td>v2.14.0</td>
+<td>1. 优化上传视频流程</td>
 </tr>
+
 <tr class="even">
 <td></td>
-<td>2. 个别手机中途播放过程中断掉时重连失败的问题</td>
-</tr>
-<tr class="even">
-<td></td>
-<td>3. 下载视频时由系统自动处理重定向</td>
-</tr>
-<tr class="even">
-<td></td>
-<td>4. 新的SDK升级了ijkjava包，老用户升级SDK需要同时使用最新的ijkjava包和so文件</td>
+<td>2. 问答功能支持在问题和答案中显示图片</td>
 </tr>
 </tbody>
 </table>
@@ -571,11 +564,15 @@ uploader.<span class="fu">start</span>();</code></pre></div>
   }
   <span class="at">@Override</span>
   <span class="kw">public</span> <span class="dt">void</span> <span class="fu">handleStatus</span>(VideoInfo videoInfo, <span class="dt">int</span> status) {
-    <span class="co">// TODO 处理上传回调的视频信息及上传状态</span>
+    <span class="co">// TODO 处理上传回调的视频信息及上传状态，status=100(等待上传)、200(正在上传)、300(暂停上传)、400(上传完成)、500(上传失败)</span>
   }
   <span class="at">@Override</span>
   <span class="kw">public</span> <span class="dt">void</span> <span class="fu">handleCancel</span>(<span class="bu">String</span> videoId) {
     <span class="co">// TODO 处理取消上传的后续操作    </span>
+  }
+  <span class="at">@Override</span>
+  <span class="kw">public</span> <span class="dt">void</span> <span class="fu">onVideoInfoUpdate</span>(<span class="bu">VideoInfo</span> videoInfo) {
+    <span class="co">// TODO 上传信息更新回调，可以在这里保存最新的videoInfo状态    </span>
   }
 };
 uploader.<span class="fu">setUploadListener</span>(uploadListenner);</code></pre></div>

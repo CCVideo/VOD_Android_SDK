@@ -22,6 +22,7 @@ import android.support.v4.view.ViewPager.OnPageChangeListener;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.bokecc.sdk.mobile.demo.download.DownloadFragment;
 import com.bokecc.sdk.mobile.demo.download.DownloadListActivity;

@@ -43,228 +43,226 @@ import com.bokecc.sdk.mobile.exception.DreamwinException;
 import com.bokecc.sdk.mobile.play.MediaMode;
 
 /**
- * 
  * 下载列表标签页，用于展示待下载的视频ID
- * 
- * @author CC视频
  *
+ * @author CC视频
  */
 public class DownloadFragment extends Fragment {
 
-	final String POPUP_DIALOG_MESSAGE = "dialogMessage";
-	
-	final String GET_DEFINITION_ERROR  = "getDefinitionError";
-	
-	//定义hashmap存储downloader信息
-	public static HashMap<String, Downloader> downloaderHashMap = new HashMap<String, Downloader>();
-	
-	AlertDialog definitionDialog;
+    final String POPUP_DIALOG_MESSAGE = "dialogMessage";
 
-	private List<Pair<String, Integer>> pairs;
-	
-	private DownloadListViewAdapter downloadListViewAdapter;
+    final String GET_DEFINITION_ERROR = "getDefinitionError";
 
-	//TODO 待下载视频ID，可根据需求自定义a
-	public String[] downloadVideoIds = new String[] {};
-	private ListView downloadListView;
-	private Context context;
-	private FragmentActivity activity;
-	private String videoId;
-	private String title;
-	int[] definitionMapKeys;
-	HashMap<Integer, String> hm;
-	
-	@Override
-	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-		activity = getActivity();
-		context = activity.getApplicationContext();
-		
-		RelativeLayout downloadRelativeLayout = new RelativeLayout(context);
-		downloadRelativeLayout.setBackgroundColor(Color.WHITE);
-		downloadRelativeLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
-		
-		downloadListView = new ListView(context);
-		downloadListView.setPadding(10, 10, 10, 10);
-		downloadListView.setDivider(getResources().getDrawable(R.drawable.line));
-		LayoutParams listViewLayout = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
-		downloadRelativeLayout.addView(downloadListView, listViewLayout);
-		
-		// 生成动态数组，加入数据
-		pairs = new ArrayList<Pair<String,Integer>>();
-		for (int i = 0; i < downloadVideoIds.length; i++) {
-			Pair<String, Integer> pair = new Pair<String, Integer>(downloadVideoIds[i], R.drawable.download);
-			pairs.add(pair);
-		}
+    //定义hashmap存储downloader信息
+    public static HashMap<String, Downloader> downloaderHashMap = new HashMap<String, Downloader>();
 
-		downloadListViewAdapter = new DownloadListViewAdapter(context, pairs);
-		downloadListView.setAdapter(downloadListViewAdapter);
-		downloadListView.setOnItemClickListener(onItemClickListener);
+    AlertDialog definitionDialog;
 
-		return downloadRelativeLayout;
-	}
+    private List<Pair<String, Integer>> pairs;
 
-	Downloader downloader;
-	OnItemClickListener onItemClickListener = new OnItemClickListener() {
+    private DownloadListViewAdapter downloadListViewAdapter;
 
-		@SuppressWarnings("unchecked")
-		@Override
-		public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-			//点击item时，downloader初始化使用的是设置清晰度方式
-			Pair<String, Integer> pair = (Pair<String, Integer>) parent.getItemAtPosition(position);
-			videoId = pair.first;
-			
-			downloader = new Downloader(videoId, ConfigUtil.USERID, ConfigUtil.API_KEY);
-			downloader.setOnProcessDefinitionListener(onProcessDefinitionListener);
-			downloader.setDownloadMode(MediaUtil.DOWNLOAD_MODE); //设置下载模式
+    //TODO 待下载视频ID，可根据需求自定义a
+    public String[] downloadVideoIds = new String[]{};
+    private ListView downloadListView;
+    private Context context;
+    private FragmentActivity activity;
+    private String videoId;
+    private String title;
+    int[] definitionMapKeys;
+    HashMap<Integer, String> hm;
 
-			downloader.getDefinitionMap();
-		}
-	};
-	
-	@SuppressLint("HandlerLeak") 
-	private Handler handler = new Handler() {
-		@Override
-		public void handleMessage(Message msg) {
-			String message = (String) msg.obj;
-			if ( message.equals(POPUP_DIALOG_MESSAGE)) {
-				String[] definitionMapValues = new String[hm.size()];
-				definitionMapKeys = new int[hm.size()]; 
-				Set<Entry<Integer, String>> set = hm.entrySet();
-				Iterator<Entry<Integer, String>> iterator = set.iterator();
-				int i = 0;
-				while(iterator.hasNext()){
-					Entry<Integer, String> entry = iterator.next();
-					definitionMapKeys[i] = entry.getKey();
-					definitionMapValues[i] = entry.getValue();
-					i++;
-				}
-				
-				Builder builder = new Builder(activity);
-				builder.setTitle("选择下载清晰度");
-				builder.setSingleChoiceItems(definitionMapValues, 0, new DialogInterface.OnClickListener() {
-					@Override
-					public void onClick(DialogInterface dialog, int which) {
-						
-						int definition = definitionMapKeys[which];
-						
-						title = videoId + "-" + definition;
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        activity = getActivity();
+        context = activity.getApplicationContext();
 
-						title = addMediaSuffix(title);
+        RelativeLayout downloadRelativeLayout = new RelativeLayout(context);
+        downloadRelativeLayout.setBackgroundColor(Color.WHITE);
+        downloadRelativeLayout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
-						if (DataSet.hasDownloadInfo(title)) {
-							Toast.makeText(context, "文件已存在", Toast.LENGTH_SHORT).show();
-							return;
-						}
+        downloadListView = new ListView(context);
+        downloadListView.setPadding(10, 10, 10, 10);
+        downloadListView.setDivider(getResources().getDrawable(R.drawable.line));
+        LayoutParams listViewLayout = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        downloadRelativeLayout.addView(downloadListView, listViewLayout);
 
-						DownloadController.insertDownloadInfo(videoId, title, definition, MediaUtil.DOWNLOAD_MODE);
-						definitionDialog.dismiss();
-						Toast.makeText(context, "文件已加入下载队列", Toast.LENGTH_SHORT).show();
-					}
-				});
-				definitionDialog = builder.create();
-				definitionDialog.show();
-			}
-			
-			if ( message.equals(GET_DEFINITION_ERROR)) {
-				Toast.makeText(context, "网络异常，请重试", Toast.LENGTH_LONG).show();
-			}
-			super.handleMessage(msg);
-		}
-	};
+        // 生成动态数组，加入数据
+        pairs = new ArrayList<Pair<String, Integer>>();
+        for (int i = 0; i < downloadVideoIds.length; i++) {
+            Pair<String, Integer> pair = new Pair<String, Integer>(downloadVideoIds[i], R.drawable.download);
+            pairs.add(pair);
+        }
 
-	private String addMediaSuffix(String title) {
-		if (MediaUtil.DOWNLOAD_MODE == MediaMode.AUDIO) {
-			 return title + "_a";
-		} else {
-			return title;
-		}
-	}
-	
-	private OnProcessDefinitionListener onProcessDefinitionListener = new OnProcessDefinitionListener(){
+        downloadListViewAdapter = new DownloadListViewAdapter(context, pairs);
+        downloadListView.setAdapter(downloadListViewAdapter);
+        downloadListView.setOnItemClickListener(onItemClickListener);
 
-		String info = null;
+        return downloadRelativeLayout;
+    }
 
-		@Override
-		public void onProcessDefinition(HashMap<Integer, String> definitionMap) {
-			hm = definitionMap;
-			if(hm != null && !hm.isEmpty()){
-				Message msg = new Message();
-				msg.obj = POPUP_DIALOG_MESSAGE;
-				handler.sendMessage(msg);
-			} else{
-				if (hm == null) {
-					info = "获取清晰度失败";
-				} else {
-					info = "清晰度节点不存在";
-				}
+    Downloader downloader;
+    OnItemClickListener onItemClickListener = new OnItemClickListener() {
 
-				getActivity().runOnUiThread(new Runnable() {
-					@Override
-					public void run() {
-						Toast.makeText(getContext(), info, Toast.LENGTH_SHORT).show();
-					}
-				});
-			}
-		}
+        @SuppressWarnings("unchecked")
+        @Override
+        public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+            //点击item时，downloader初始化使用的是设置清晰度方式
+            Pair<String, Integer> pair = (Pair<String, Integer>) parent.getItemAtPosition(position);
+            videoId = pair.first;
 
-		@Override
-		public void onProcessException(DreamwinException exception) {
-			Message msg = new Message();
-			msg.obj = GET_DEFINITION_ERROR;
-			handler.sendMessage(msg);
-		}
-	};
-	
-	@Override
-	public void onDestroy() {
-		super.onDestroy();
-	}
-	
-	public class DownloadListViewAdapter extends VideoListViewAdapter{
-		
-		public DownloadListViewAdapter(Context context, List<Pair<String, Integer>> pairs){
-			super(context, pairs);
-		}
+            downloader = new Downloader(videoId, ConfigUtil.USERID, ConfigUtil.API_KEY);
+            downloader.setOnProcessDefinitionListener(onProcessDefinitionListener);
+            downloader.setDownloadMode(MediaUtil.DOWNLOAD_MODE); //设置下载模式
 
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			
-			Pair<String, Integer> pair = pairs.get(position);
-			DownloadListView downloadListView = new DownloadListView(context, pair.first, pair.second);
-			downloadListView.setTag(pair.first);
-			return downloadListView;
-		}
+            downloader.getDefinitionMap();
+        }
+    };
 
-	}
-	
-	public class DownloadListView extends VideoListView{
-		private Context context;
-		
-		public DownloadListView(Context context, String text, int resId) {
-			super(context, text, resId);
-			this.context = context;
-			setImageListener();
-		}
-		
-		//设置图片点击事件，点击图片的下载方式使用默认下载方式
-		void setImageListener(){
-			imageView.setOnClickListener(new OnClickListener() {
-				@Override
-				public void onClick(View v) {
-					title = videoView.getText().toString();
-					String videoId = title;
+    @SuppressLint("HandlerLeak")
+    private Handler handler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            String message = (String) msg.obj;
+            if (message.equals(POPUP_DIALOG_MESSAGE)) {
+                String[] definitionMapValues = new String[hm.size()];
+                definitionMapKeys = new int[hm.size()];
+                Set<Entry<Integer, String>> set = hm.entrySet();
+                Iterator<Entry<Integer, String>> iterator = set.iterator();
+                int i = 0;
+                while (iterator.hasNext()) {
+                    Entry<Integer, String> entry = iterator.next();
+                    definitionMapKeys[i] = entry.getKey();
+                    definitionMapValues[i] = entry.getValue();
+                    i++;
+                }
 
-					title = addMediaSuffix(title);
+                Builder builder = new Builder(activity);
+                builder.setTitle("选择下载清晰度");
+                builder.setSingleChoiceItems(definitionMapValues, 0, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
 
-					if (DataSet.hasDownloadInfo(title)) {
-						Toast.makeText(context, "文件已存在", Toast.LENGTH_SHORT).show();
-						return;
-					}
+                        int definition = definitionMapKeys[which];
 
-					DownloadController.insertDownloadInfo(videoId, title);
-					Toast.makeText(context, "文件已加入下载队列", Toast.LENGTH_SHORT).show();
-				}
-			});
-		}
-	}
+                        title = videoId + "-" + definition;
+
+                        title = addMediaSuffix(title);
+
+                        if (DataSet.hasDownloadInfo(title)) {
+                            Toast.makeText(context, "文件已存在", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        DownloadController.insertDownloadInfo(videoId, title, definition, MediaUtil.DOWNLOAD_MODE);
+                        definitionDialog.dismiss();
+                        Toast.makeText(context, "文件已加入下载队列", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                definitionDialog = builder.create();
+                definitionDialog.show();
+            }
+
+            if (message.equals(GET_DEFINITION_ERROR)) {
+                Toast.makeText(context, "网络异常，请重试", Toast.LENGTH_LONG).show();
+            }
+            super.handleMessage(msg);
+        }
+    };
+
+    private String addMediaSuffix(String title) {
+        if (MediaUtil.DOWNLOAD_MODE == MediaMode.AUDIO) {
+            return title + "_a";
+        } else {
+            return title;
+        }
+    }
+
+    private OnProcessDefinitionListener onProcessDefinitionListener = new OnProcessDefinitionListener() {
+
+        String info = null;
+
+        @Override
+        public void onProcessDefinition(HashMap<Integer, String> definitionMap) {
+            hm = definitionMap;
+            if (hm != null && !hm.isEmpty()) {
+                Message msg = new Message();
+                msg.obj = POPUP_DIALOG_MESSAGE;
+                handler.sendMessage(msg);
+            } else {
+                if (hm == null) {
+                    info = "获取清晰度失败";
+                } else {
+                    info = "清晰度节点不存在";
+                }
+
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getContext(), info, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        }
+
+        @Override
+        public void onProcessException(DreamwinException exception) {
+            Message msg = new Message();
+            msg.obj = GET_DEFINITION_ERROR;
+            handler.sendMessage(msg);
+        }
+    };
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+    }
+
+    public class DownloadListViewAdapter extends VideoListViewAdapter {
+
+        public DownloadListViewAdapter(Context context, List<Pair<String, Integer>> pairs) {
+            super(context, pairs);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+
+            Pair<String, Integer> pair = pairs.get(position);
+            DownloadListView downloadListView = new DownloadListView(context, pair.first, pair.second);
+            downloadListView.setTag(pair.first);
+            return downloadListView;
+        }
+
+    }
+
+    public class DownloadListView extends VideoListView {
+        private Context context;
+
+        public DownloadListView(Context context, String text, int resId) {
+            super(context, text, resId);
+            this.context = context;
+            setImageListener();
+        }
+
+        //设置图片点击事件，点击图片的下载方式使用默认下载方式
+        void setImageListener() {
+            imageView.setOnClickListener(new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    title = videoView.getText().toString();
+                    String videoId = title;
+
+                    title = addMediaSuffix(title);
+
+                    if (DataSet.hasDownloadInfo(title)) {
+                        Toast.makeText(context, "文件已存在", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    DownloadController.insertDownloadInfo(videoId, title);
+                    Toast.makeText(context, "文件已加入下载队列", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
 }

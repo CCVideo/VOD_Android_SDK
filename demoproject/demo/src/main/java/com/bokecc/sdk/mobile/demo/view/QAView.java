@@ -3,6 +3,9 @@ package com.bokecc.sdk.mobile.demo.view;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -22,20 +25,25 @@ import android.widget.Toast;
 import com.bokecc.sdk.mobile.demo.R;
 import com.bokecc.sdk.mobile.demo.play.qa.Answer;
 import com.bokecc.sdk.mobile.demo.play.qa.Question;
+import com.bokecc.sdk.mobile.demo.play.qa.UrlImageSpan;
 import com.bokecc.sdk.mobile.demo.util.ParamsUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by cc on 2018/2/24.
- *
+ * <p>
  * 问答展示类
  */
 
 public class QAView {
 
     Context mContext;
+    View qa_question_view;
+
     public QAView(Context context) {
         this.mContext = context;
         initPopupWindow();
@@ -50,7 +58,7 @@ public class QAView {
         mPopupWindow.setHeight(ViewGroup.LayoutParams.MATCH_PARENT);
 
         mRootView = LayoutInflater.from(mContext).inflate(R.layout.qa_layout, null);
-
+        qa_question_view = LayoutInflater.from(mContext).inflate(R.layout.qa_question_view, null);
         initView();
 
         mPopupWindow.setContentView(mRootView);
@@ -61,9 +69,11 @@ public class QAView {
     }
 
     Question question;
+    private SpannableString spannableString;
 
     /**
      * 设置需要展示的question
+     *
      * @param question
      */
     public void setQuestion(Question question) {
@@ -72,14 +82,32 @@ public class QAView {
         isOneChecked = false;
 
         rlQAResult.setVisibility(View.GONE);
-
-        tvQAContent.setText(question.getContent());
-        svAnswers.removeAllViews();
-
-        if (question.isMultiAnswer()) {
-            svAnswers.addView(getMultiAnswerLayout(question.getAnswers()));
+        String content = question.getContent();
+        if (!TextUtils.isEmpty(content)) {
+            spannableString = new SpannableString(content);
+            Pattern pattern = Pattern.compile("\\{[^\\}]+\\}");
+            final Matcher matcher = pattern.matcher(content);
+            while (matcher.find()) {
+                UrlImageSpan imageSpan;
+                String group = matcher.group();
+                if (group.contains("http")) {
+                    String url = group.substring(1, group.length() - 1);
+                    imageSpan = new UrlImageSpan(mContext, url, tvQAContent);
+                    spannableString.setSpan(imageSpan, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            }
+            tvQAContent.setText(spannableString);
         } else {
-            svAnswers.addView(getSingleAnswerLayout(question.getAnswers()));
+            tvQAContent.setText(content);
+        }
+
+        ll_container.removeAllViews();
+        if (question.isMultiAnswer()) {
+            ll_container.addView(qa_question_view);
+            ll_container.addView(getMultiAnswerLayout(question.getAnswers()));
+        } else {
+            ll_container.addView(qa_question_view);
+            ll_container.addView(getSingleAnswerLayout(question.getAnswers()));
         }
 
         if (question.isJump()) {
@@ -116,6 +144,7 @@ public class QAView {
 
     //生成多选的界面布局
     final int choiceDrawableWidth = 16;
+
     private LinearLayout getMultiAnswerLayout(List<Answer> answerList) {
         answerWrappers.clear();
 
@@ -125,10 +154,10 @@ public class QAView {
         rootLayout.setOrientation(LinearLayout.VERTICAL);
         rootLayout.setLayoutParams(layoutParams);
 
-        int topMargin = ParamsUtil.dpToPx(mContext, 10);
+        int topMargin = ParamsUtil.dpToPx(mContext, 1);
         int width = ParamsUtil.dpToPx(mContext, choiceDrawableWidth);
 
-        for (Answer answer: answerList) {
+        for (Answer answer : answerList) {
 
             final AnswerWrapper answerWrapper = new AnswerWrapper(answer);
             answerWrappers.add(answerWrapper);
@@ -136,7 +165,7 @@ public class QAView {
             final RadioButton radioButton = new RadioButton(mContext);
 
             Drawable mDrawable = mContext.getResources().getDrawable(R.drawable.qa_multi_select_drawable);
-            mDrawable.setBounds(0, 0, width ,width);
+            mDrawable.setBounds(0, 0, width, width);
             radioButton.setButtonDrawable(null);
 
             LinearLayout.LayoutParams radioButtonLayoutParams = new LinearLayout.LayoutParams(
@@ -146,18 +175,37 @@ public class QAView {
             radioButton.setLayoutParams(radioButtonLayoutParams);
 
             radioButton.setCompoundDrawables(mDrawable, null, null, null);
-            radioButton.setText(answer.getContent());
-            radioButton.setTextSize(TypedValue.COMPLEX_UNIT_SP,12);
+            //            展示答案内容
+            String content = answer.getContent();
+            if (!TextUtils.isEmpty(content)) {
+                SpannableString spannableString = new SpannableString(content);
+                Pattern pattern = Pattern.compile("\\{[^\\}]+\\}");
+                final Matcher matcher = pattern.matcher(content);
+                while (matcher.find()) {
+                    UrlImageSpan imageSpan;
+                    String group = matcher.group();
+                    if (group.contains("http")) {
+                        String url = group.substring(1, group.length() - 1);
+                        imageSpan = new UrlImageSpan(mContext, url, radioButton);
+                        spannableString.setSpan(imageSpan, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
+                radioButton.setText(spannableString);
+            } else {
+                radioButton.setText(answer.getContent());
+            }
+            radioButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             radioButton.setTextColor(0xff666666);
             radioButton.setCompoundDrawablePadding(ParamsUtil.dpToPx(mContext, 5));
             radioButton.setOnClickListener(new View.OnClickListener() {
                 GlobalValue globalValue = new GlobalValue();
+
                 @Override
                 public void onClick(View v) {
                     isOneChecked = true;
 
                     boolean isCheck = globalValue.isCheck();
-                    if(isCheck) {
+                    if (isCheck) {
                         radioButton.setChecked(false);
                         answerWrapper.isRight = (answerWrapper.answer.isRight() == false);
                     } else {
@@ -196,10 +244,10 @@ public class QAView {
         rootLayout.setOrientation(RadioGroup.VERTICAL);
         rootLayout.setLayoutParams(layoutParams);
 
-        int topMargin = ParamsUtil.dpToPx(mContext, 10);
+        int topMargin = ParamsUtil.dpToPx(mContext, 1);
         int width = ParamsUtil.dpToPx(mContext, choiceDrawableWidth);
-        
-        for (int i=0; i<answerList.size(); i++) {
+
+        for (int i = 0; i < answerList.size(); i++) {
             final Answer answer = answerList.get(i);
             RadioButton radioButton = new RadioButton(mContext);
             Drawable mDrawable = mContext.getResources().getDrawable(R.drawable.qa_single_select_drawable);
@@ -213,8 +261,28 @@ public class QAView {
             radioButton.setLayoutParams(radioButtonLayoutParams);
 
             radioButton.setCompoundDrawables(mDrawable, null, null, null);
-            radioButton.setText(answer.getContent());
-            radioButton.setTextSize(TypedValue.COMPLEX_UNIT_SP,12);
+//            展示答案内容
+            String content = answer.getContent();
+            if (!TextUtils.isEmpty(content)) {
+                SpannableString spannableString = new SpannableString(content);
+                Pattern pattern = Pattern.compile("\\{[^\\}]+\\}");
+                final Matcher matcher = pattern.matcher(content);
+                while (matcher.find()) {
+                    UrlImageSpan imageSpan;
+                    String group = matcher.group();
+                    if (group.contains("http")) {
+                        String url = group.substring(1, group.length() - 1);
+                        imageSpan = new UrlImageSpan(mContext, url, radioButton);
+                        spannableString.setSpan(imageSpan, matcher.start(), matcher.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    }
+                }
+                radioButton.setText(spannableString);
+            } else {
+                radioButton.setText(answer.getContent());
+            }
+
+
+            radioButton.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12);
             radioButton.setTextColor(0xff666666);
             radioButton.setCompoundDrawablePadding(ParamsUtil.dpToPx(mContext, 5));
 
@@ -242,6 +310,7 @@ public class QAView {
 
     /**
      * 展示问答界面
+     *
      * @param view
      */
     public void show(View view) {
@@ -257,6 +326,7 @@ public class QAView {
 
     /**
      * 界面是否显示
+     *
      * @return
      */
     public boolean isPopupWindowShown() {
@@ -265,6 +335,7 @@ public class QAView {
 
     /**
      * 设置隐藏监听器
+     *
      * @param qaViewDismissListener
      */
     public void setQAViewDismissListener(final QAViewDismissListener qaViewDismissListener) {
@@ -284,9 +355,11 @@ public class QAView {
     RelativeLayout rlQAResult;
     TextView tvExplainInfo, tvResultTitle, tvResultReturn;
     ImageView ivResultBgFlag;
+    LinearLayout ll_container;
+
 
     private void initView() {
-        tvQAContent = findViewById(R.id.qa_content_tv);
+        tvQAContent = qa_question_view.findViewById(R.id.qa_content_tv);
         tvQAJump = findViewById(R.id.qa_jump_tv);
         tvQASubmit = findViewById(R.id.qa_submit_tv);
         tvQASubmit.setOnClickListener(new View.OnClickListener() {
@@ -301,6 +374,7 @@ public class QAView {
         });
 
         svAnswers = findViewById(R.id.answers_layout_sv);
+        ll_container = findViewById(R.id.ll_container);
 
         rlQAResult = findViewById(R.id.qa_result_rl);
         tvExplainInfo = findViewById(R.id.qa_explain_info_tv);
@@ -342,7 +416,7 @@ public class QAView {
     }
 
     private boolean getMultiRight() {
-        for (AnswerWrapper answerWrapper: answerWrappers) {
+        for (AnswerWrapper answerWrapper : answerWrappers) {
             if (!answerWrapper.isRight) {
                 return false;
             }
@@ -361,6 +435,7 @@ public class QAView {
     public interface QAViewDismissListener {
         /**
          * 隐藏回调
+         *
          * @param isRight 用户是否选择了正确答案
          */
         void onDismiss(boolean isRight);
