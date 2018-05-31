@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:id="@+id/audio_layout"
+    android:visibility="gone"
+    android:background="@drawable/audio_bg"
+    >
+
+    <TextView
+        android:id="@+id/audio_speed"
+        android:visibility="visible"
+        android:layout_marginTop="50dp"
+        android:background="@drawable/audio_speed_text_bg"
+        android:text="语速x1.0"
+        android:padding="8dp"
+        android:textSize="11sp"
+        android:textColor="#ffffff"
+        android:layout_width="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_height="wrap_content" />
+
+    <SeekBar
+        android:id="@+id/audioProgress"
+        android:layout_width="330dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp"
+        android:maxHeight="3dp"
+        android:minHeight="3dp"
+        android:progressDrawable="@drawable/seekbar_style" >
+    </SeekBar>
+
+    <RelativeLayout
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="2dp">
+
+        <TextView
+            android:id="@+id/audio_current_time"
+            android:text="102:56"
+            android:textColor="#ffffff"
+            android:textSize="11sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/audio_duration_time"
+            android:layout_alignParentEnd="true"
+            android:text="102:56"
+            android:textColor="#ffffff"
+            android:textSize="11sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_marginTop="20dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/audio_play_pause"
+            android:layout_centerInParent="true"
+            android:src="@drawable/audio_pause_icon"
+            android:layout_width="44dp"
+            android:layout_height="44dp" />
+        
+        <View
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@id/audio_play_pause"
+            android:layout_marginRight="33dp"
+            android:background="#4cffffff"
+            android:layout_width="1dp"
+            android:layout_height="28dp" />
+
+        <ImageView
+            android:id="@+id/audio_back_15s_view"
+            android:layout_centerVertical="true"
+            android:layout_toStartOf="@id/audio_play_pause"
+            android:layout_marginRight="68dp"
+            android:src="@drawable/audio_back_15s"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+        <View
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/audio_play_pause"
+            android:layout_marginLeft="33dp"
+            android:background="#4cffffff"
+            android:layout_width="1dp"
+            android:layout_height="28dp" />
+
+        <ImageView
+            android:id="@+id/audio_forward_15s_view"
+            android:layout_centerVertical="true"
+            android:layout_toEndOf="@id/audio_play_pause"
+            android:layout_marginLeft="68dp"
+            android:src="@drawable/audio_forward_15s"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </RelativeLayout>
+</LinearLayout>
