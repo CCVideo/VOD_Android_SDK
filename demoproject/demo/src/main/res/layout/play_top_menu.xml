@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:paddingTop="5dp"
+    android:paddingLeft="15dp"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <TextView
+        android:layout_marginLeft="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:textSize="14sp"
+        android:text="字幕："
+        android:textColor="#FFFFFF" />
+
+    <RadioGroup
+        android:id="@+id/rg_subtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:orientation="horizontal" >
+
+        <RadioButton
+            android:id="@+id/rb_subtitle_open"
+            style="@style/rbStyle"
+            android:checked="true"
+            android:text="开" />
+
+        <RadioButton
+            android:id="@+id/rb_subtitle_close"
+            style="@style/rbStyle"
+            android:layout_marginLeft="10dp"
+            android:text="关" />
+    </RadioGroup>
+
+    <TextView
+        android:textSize="14sp"
+        android:layout_marginTop="15dp"
+        android:layout_marginLeft="5dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:text="画面尺寸："
+        android:textColor="#FFFFFF" />
+
+    <RadioGroup
+        android:id="@+id/rg_screensize"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="5dp"
+        android:orientation="horizontal" >
+
+        <RadioButton
+            android:id="@+id/rb_screensize_full"
+            style="@style/rbStyle"
+            android:text="满屏" />
+
+        <RadioButton
+            android:id="@+id/rb_screensize_100"
+            style="@style/rbStyle"
+            android:checked="true"
+            android:layout_marginLeft="10dp"
+            android:text="100%" />
+
+        <RadioButton
+            android:id="@+id/rb_screensize_75"
+            style="@style/rbStyle"
+            android:layout_marginLeft="10dp"
+            android:text="75%" />
+
+        <RadioButton
+            android:id="@+id/rb_screensize_50"
+            style="@style/rbStyle"
+            android:layout_marginLeft="10dp"
+            android:text="50%" />
+    </RadioGroup>
+
+</LinearLayout>
