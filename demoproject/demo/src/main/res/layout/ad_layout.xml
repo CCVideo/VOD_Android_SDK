@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rl_ad"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:visibility="gone" >
+
+    <ImageView
+        android:id="@+id/iv_ad"
+        android:background="@color/ad_color"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY" />
+
+    <ImageView
+        android:id="@+id/iv_ad_back"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_marginLeft="@dimen/ad_tv_margin_left_right"
+        android:layout_marginTop="@dimen/ad_tv_margin_top_bottom"
+        android:src="@drawable/back" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_marginRight="@dimen/ad_tv_margin_left_right"
+        android:layout_marginTop="@dimen/ad_tv_margin_top_bottom"
+        android:orientation="horizontal" >
+
+        <TextView
+            android:id="@+id/tv_countdown"
+            style="@style/adTextStyle"
+            android:layout_marginRight="4dp"
+            android:text="0秒" />
+
+        <TextView
+            android:id="@+id/tv_close_ad"
+            style="@style/adTextStyle"
+            android:text="@string/close_ad"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_marginBottom="@dimen/ad_tv_margin_top_bottom"
+        android:layout_marginRight="@dimen/ad_tv_margin_left_right" >
+
+        <ImageView
+            android:id="@+id/iv_ad_fullscreen"
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true"
+            android:scaleType="fitXY"
+            android:src="@drawable/fullscreen_close" />
+
+        <TextView
+            android:id="@+id/tv_adinfo"
+            style="@style/adTextStyle"
+            android:layout_centerVertical="true"
+            android:layout_marginRight="5dp"
+            android:layout_toLeftOf="@+id/iv_ad_fullscreen"
+            android:text="@string/ad_info" />
+    </RelativeLayout>
+
+</RelativeLayout>
