@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white">
+
+    <TextView
+        android:id="@+id/tv_not_compress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="不压缩"
+        android:textSize="18sp"
+        android:padding="10dp"
+        android:textColor="@color/black"/>
+
+    <TextView
+        android:id="@+id/tv_high_compress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="高质量压缩"
+        android:textSize="18sp"
+        android:padding="10dp"
+        android:textColor="@color/black"
+        android:layout_marginTop="15dp"/>
+
+    <TextView
+        android:id="@+id/tv_medium_compress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="中质量压缩"
+        android:textSize="18sp"
+        android:padding="10dp"
+        android:textColor="@color/black"
+        android:layout_marginTop="15dp"/>
+
+    <TextView
+        android:id="@+id/tv_low_compress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="低质量压缩"
+        android:textSize="18sp"
+        android:padding="10dp"
+        android:textColor="@color/black"
+        android:layout_marginTop="15dp"/>
+
+</LinearLayout>
