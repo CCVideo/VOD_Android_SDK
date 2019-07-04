@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="10dp"
+    >
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="15sp"
+        android:text="请先完成练习"
+        android:layout_marginTop="20dp"
+        android:textColor="@color/exeTitle"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="40dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btn_listen_class"
+            android:layout_width="105dp"
+            android:layout_height="40dp"
+            android:text="返回听课"
+            android:textColor="@color/orange"
+            android:textSize="15sp"
+            android:background="@drawable/orange_line_corner_bac"/>
+
+        <Button
+            android:id="@+id/btn_do_exe"
+            android:layout_width="105dp"
+            android:layout_height="40dp"
+            android:text="直接做题"
+            android:layout_marginLeft="20dp"
+            android:textColor="@color/orange"
+            android:textSize="15sp"
+            android:background="@drawable/orange_line_corner_bac"/>
+
+    </LinearLayout>
+
+</LinearLayout>

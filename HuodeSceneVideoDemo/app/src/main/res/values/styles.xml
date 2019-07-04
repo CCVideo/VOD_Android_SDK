@@ -19,6 +19,11 @@
         <item name="android:windowBackground">@color/white</item>
     </style>
 
+    <style name="ExerciseGuideDialog" parent="android:style/Theme.Dialog">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@color/portrait_visitor_info_bac</item>
+    </style>
+
     <style name="DeleteFileDialog" parent="android:style/Theme.Dialog">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowBackground">@drawable/white_corner_bac</item>

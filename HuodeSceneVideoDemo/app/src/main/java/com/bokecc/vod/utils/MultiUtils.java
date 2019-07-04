@@ -30,9 +30,9 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.HuodeApplication;
 import com.bokecc.vod.R;
-import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.view.RoundCornerTransform;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -188,7 +188,14 @@ public class MultiUtils {
         return verificationCode;
     }
 
+    public static void setIsReadExerciseGuide(boolean isRead) {
+        HuodeApplication.getSp().edit().putBoolean("isReadExerciseGuide", isRead).commit();
+    }
 
+    public static boolean getIsReadExerciseGuide() {
+        boolean isReadExerciseGuide = HuodeApplication.getSp().getBoolean("isReadExerciseGuide", false);
+        return isReadExerciseGuide;
+    }
 
     //    获得输入框内容
     public static String getEditTextContent(EditText editText) {
@@ -442,7 +449,7 @@ public class MultiUtils {
 
     public static int getNetWorkStatus(Context context){
         int netWorkStatus = 1;
-        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
             NetworkInfo wifiInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
             NetworkInfo dataInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
@@ -526,4 +533,5 @@ public class MultiUtils {
         }
         return result;
     }
+
 }

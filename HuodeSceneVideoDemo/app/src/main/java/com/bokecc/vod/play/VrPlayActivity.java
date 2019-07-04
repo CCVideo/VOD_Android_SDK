@@ -41,6 +41,7 @@ import com.bokecc.sdk.mobile.play.DWMediaPlayer;
 import com.bokecc.sdk.mobile.play.MediaMode;
 import com.bokecc.sdk.mobile.play.OnAuthMsgListener;
 import com.bokecc.sdk.mobile.play.OnDreamWinErrorListener;
+import com.bokecc.sdk.mobile.play.OnExercisesMsgListener;
 import com.bokecc.sdk.mobile.play.OnHotspotListener;
 import com.bokecc.sdk.mobile.play.OnPlayModeListener;
 import com.bokecc.sdk.mobile.play.OnQAMsgListener;
@@ -51,6 +52,7 @@ import com.bokecc.vod.HuodeApplication;
 import com.bokecc.vod.R;
 import com.bokecc.vod.adapter.PlayListAdapter;
 import com.bokecc.vod.data.DataSet;
+import com.bokecc.vod.data.Exercise;
 import com.bokecc.vod.data.HuodeVideoInfo;
 import com.bokecc.vod.data.ObjectBox;
 import com.bokecc.vod.data.Question;
@@ -59,6 +61,8 @@ import com.bokecc.vod.data.VideoPositionDBHelper;
 import com.bokecc.vod.data.VisitorInfo;
 import com.bokecc.vod.download.DownloadController;
 import com.bokecc.vod.inter.CommitOrJumpVisitorInfo;
+import com.bokecc.vod.inter.ExeOperation;
+import com.bokecc.vod.inter.ExercisesContinuePlay;
 import com.bokecc.vod.inter.IsUseMobieNetwork;
 import com.bokecc.vod.inter.MoreSettings;
 import com.bokecc.vod.inter.SelectDefinition;
@@ -68,6 +72,8 @@ import com.bokecc.vod.utils.VrConfig;
 import com.bokecc.vod.utils.VrController;
 import com.bokecc.vod.view.CheckNetworkDialog;
 import com.bokecc.vod.view.CircleProgressBar;
+import com.bokecc.vod.view.DoExerciseDialog;
+import com.bokecc.vod.view.ExerciseGuideDialog;
 import com.bokecc.vod.view.HotspotSeekBar;
 import com.bokecc.vod.view.IsUseMobileNetworkDialog;
 import com.bokecc.vod.view.LandscapeVisitorInfoDialog;
@@ -76,6 +82,7 @@ import com.bokecc.vod.view.PortraitVisitorInfoDialog;
 import com.bokecc.vod.view.QAView;
 import com.bokecc.vod.view.SelectDefinitionDialog;
 import com.bokecc.vod.view.SelectVideoDialog;
+import com.bokecc.vod.view.ShowExeDialog;
 import com.bokecc.vod.view.SubtitleView;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.animation.GlideAnimation;
@@ -140,6 +147,13 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     //问答数据
     private QAView qaView;
     TreeMap<Integer, Question> questions;
+    //课堂练习
+    private List<Exercise> exercises;
+    private ShowExeDialog exeDialog;
+    private DoExerciseDialog doExerciseDialog;
+    private boolean isShowConfirmExerciseDialog = false;
+    private int returnListenTime = 0;
+    private int exerciseTimePoint;
     //视频打点数据
     private TreeMap<Integer, String> hotSpotDatas;
     //授权验证码
@@ -344,13 +358,19 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
             @Override
             public void onStartTrackingTouch(HotspotSeekBar seekBar) {
-
+                returnListenTime = seekBar.getProgress();
             }
 
             @Override
             public void onStopTrackingTouch(HotspotSeekBar seekBar, float trackStopPercent) {
                 int stopPostion = (int) (trackStopPercent * player.getDuration());
                 player.seekTo(stopPostion);
+                //拖动进度条展示课堂练习
+                if (isShowExercise(stopPostion)) {
+                    isShowConfirmExerciseDialog = true;
+                } else {
+                    isShowConfirmExerciseDialog = false;
+                }
             }
         });
         //点击打点位置，从这个位置开始播放
@@ -548,6 +568,23 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                         }
                     }
 
+                }
+            }
+        });
+        //课堂练习
+        exercises = new ArrayList<>();
+        player.setOnExercisesMsgListener(new OnExercisesMsgListener() {
+            @Override
+            public void onExercisesMessage(JSONArray exArray) {
+                if (exArray != null && exArray.length() > 0) {
+                    for (int i = 0; i < exArray.length(); i++) {
+                        try {
+                            Exercise exercise = new Exercise(exArray.getJSONObject(i));
+                            exercises.add(exercise);
+                        } catch (JSONException e) {
+
+                        }
+                    }
                 }
             }
         });
@@ -1037,7 +1074,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         if (downloadCount > 0) {
             MultiUtils.showToast(activity, "文件已加入下载队列");
         } else {
-            if (selectedCount>0){
+            if (selectedCount > 0) {
                 MultiUtils.showToast(activity, "文件已存在");
             }
         }
@@ -1302,6 +1339,13 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     //从上次播放的位置开始播放
                     player.seekTo(lastPlayPosition);
                     player.start();
+                    //从记忆播放处展示课堂练习
+                    if (isShowExercise(lastPlayPosition)) {
+                        isShowConfirmExerciseDialog = true;
+                    } else {
+                        isShowConfirmExerciseDialog = false;
+                    }
+                    returnListenTime = 0;
                 }
             } else {
                 player.start();
@@ -1315,7 +1359,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
         if (!isFullScreen) {
             setPortVideo();
-        }else {
+        } else {
             //重置画面大小
             setSize(1);
         }
@@ -1347,7 +1391,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 disposeVrController();
             }
         } else {
-            if (isVr){
+            if (isVr) {
                 disposeLocalVrController();
             }
             setLandScape();
@@ -1394,7 +1438,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                         @Override
                         public void onClick(View v) {
                             hidePlayErrorView();
-                            playVideoOrAudio(isAudioMode,false);
+                            playVideoOrAudio(isAudioMode, false);
                         }
                     });
                 } else {
@@ -1410,7 +1454,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 }
                 break;
             case DWMediaPlayer.MEDIA_INFO_BUFFERING_END:
-                if (!isLocalPlay){
+                if (!isLocalPlay) {
                     isNoNetPause = false;
                 }
                 ll_load_video.setVisibility(View.GONE);
@@ -1442,8 +1486,8 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 tv_operation.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        if (netWorkStatus==0){
-                            MultiUtils.showToast(activity,"请检查你的网络连接");
+                        if (netWorkStatus == 0) {
+                            MultiUtils.showToast(activity, "请检查你的网络连接");
                             return;
                         }
                         hidePlayErrorView();
@@ -1576,7 +1620,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     }
 
     private void showIsUseMobileNetwork() {
-        if (isLocalPlay){
+        if (isLocalPlay) {
             return;
         }
         if (isShowUseMobie) {
@@ -1684,6 +1728,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
         //清除访客信息
         resetVisitorInfo();
+        //重置课堂练习
+        if (exercises != null && exercises.size() > 0) {
+            exercises.removeAll(exercises);
+        }
         //重置授权验证信息
         isAllowPlayWholeVideo = 2;
         freeWatchTime = 0;
@@ -1825,7 +1873,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             int limitedVideoWidth = MultiUtils.getScreenHeight(activity);
             int screenWidth = MultiUtils.getScreenWidth(activity);
             int screenHeight = MultiUtils.getScreenHeight(activity);
-            if (screenWidth>screenHeight){
+            if (screenWidth > screenHeight) {
                 landVideoHeight = screenHeight;
                 limitedVideoWidth = screenWidth;
             }
@@ -1914,6 +1962,24 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                             showVisitorInfoDialog();
                         }
 
+                        //展示课堂练习
+                        if (isShowExercise((int) currentPosition)) {
+                            if (exeDialog != null && exeDialog.isShowing()) {
+                                return;
+                            }
+                            if (doExerciseDialog != null && doExerciseDialog.isShowing()) {
+                                return;
+                            }
+                            if (!isFullScreen) {
+                                setLandScape();
+                            }
+                            if (isShowConfirmExerciseDialog) {
+                                showExercise();
+                                return;
+                            }
+                            showDoExerciseDialog(true);
+                        }
+
                         //如果大于试看时长就暂停
                         if (isAllowPlayWholeVideo == 0 && currentPosition > freeWatchTime * 1000) {
                             player.pause();
@@ -1929,6 +1995,47 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     }
                 });
             }
+        }
+    }
+
+    //展示课堂练习
+    private void showExercise() {
+        exeDialog = new ShowExeDialog(activity, new ExeOperation() {
+            @Override
+            public void listenClass() {
+                player.seekTo(returnListenTime);
+                playOrPauseVideo();
+                isShowConfirmExerciseDialog = false;
+            }
+
+            @Override
+            public void doExe() {
+                showDoExerciseDialog(false);
+            }
+
+        });
+        exeDialog.show();
+        if (isPlayVideo) {
+            playOrPauseVideo();
+        }
+    }
+
+    private void showDoExerciseDialog(boolean isChangePlayState) {
+        doExerciseDialog = new DoExerciseDialog(activity, exercises.get(0), videoId, new ExercisesContinuePlay() {
+            @Override
+            public void continuePlay() {
+                exercises.remove(0);
+                playOrPauseVideo();
+            }
+        });
+        doExerciseDialog.show();
+        if (isChangePlayState) {
+            playOrPauseVideo();
+        }
+        boolean isReadExerciseGuide = MultiUtils.getIsReadExerciseGuide();
+        if (!isReadExerciseGuide) {
+            ExerciseGuideDialog exerciseGuideDialog = new ExerciseGuideDialog(activity);
+            exerciseGuideDialog.show();
         }
     }
 
@@ -2066,6 +2173,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
         vrController.initDefinitionText(definitions, currentDefinitionIndex);
     }
+
     // 处理本地播放vr控制面板的一些初始化参数
     private void disposeLocalVrController() {
         vrController.getVRLibrary().switchProjectionMode(this, MDVRLibrary.PROJECTION_MODE_SPHERE);
@@ -2168,7 +2276,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         public void seeBackPlay(int backplay, boolean isRight) {
             player.seekTo(backplay * 1000);
             playOrPauseVideo();
-            if (isRight){
+            if (isRight) {
                 questions.remove(questions.firstKey());
             }
         }
@@ -2200,6 +2308,16 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
         qaView.setQuestion(questions.firstEntry().getValue());
         qaView.show(getWindow().getDecorView().findViewById(android.R.id.content));
+    }
+
+    //课堂练习
+    private boolean isShowExercise(int currentPosition) {
+        if (exercises == null || exercises.size() < 1) {
+            return false;
+        }
+
+        exerciseTimePoint = exercises.get(0).getShowTime() * 1000; //需要换算成毫秒
+        return currentPosition >= exerciseTimePoint;
     }
 
     //更新本地数据库记录的播放位置

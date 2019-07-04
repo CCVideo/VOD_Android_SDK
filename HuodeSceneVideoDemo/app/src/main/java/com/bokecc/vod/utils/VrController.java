@@ -837,6 +837,18 @@ public class VrController {
     private float sizeImageX = 0.3f;
     private float sizeImageY = 0.3f;
 
+//    private class ImageLoadProvider implements MDVRLibrary.IImageLoadProvider{
+//        @Override
+//        public void onProvideBitmap(Uri uri, final MD360BitmapTexture.Callback callback) {
+//            Glide.with(HuodeApplication.getContext()).load(uri).asBitmap().into(new SimpleTarget<Bitmap>() {
+//                @Override
+//                public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
+//                    callback.texture(resource);
+//                }
+//            });
+//
+//        }
+//    }
     // picasso impl
     private class ImageLoadProvider implements MDVRLibrary.IImageLoadProvider{
 

@@ -1,27 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white">
+    android:orientation="vertical">
+    <ProgressBar
+        android:id="@+id/pb_do_exercise"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:indeterminate="false"
+        android:indeterminateOnly="false"
+        android:progressDrawable="@drawable/do_exercise_progressbar" />
+
+    <android.support.v4.view.ViewPager
+        android:id="@+id/vp_exe"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+    </android.support.v4.view.ViewPager>
 
     <LinearLayout
+        android:id="@+id/ll_statistic"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:orientation="vertical"
-        android:padding="10dp">
+        android:visibility="gone">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:textColor="@color/black"
-            android:text="视频问答"
-            android:layout_gravity="center_horizontal"/>
+            android:layout_marginTop="30dp"
+            android:gravity="center">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="你答对"
+                android:textColor="@color/exeTitle"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/tv_answer_right_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1"
+                android:textColor="@color/rightAnswer"
+                android:textSize="15sp"
+                android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/tv_total_question_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="题,共4题"
+                android:textColor="@color/exeTitle"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/lv_statistics"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="30dp"
+            android:layout_weight="1"
+            android:divider="@color/white"
+            android:dividerHeight="10dp">
+
+        </ListView>
+
+        <Button
+            android:id="@+id/btn_continue_play"
+            android:layout_width="125dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="30dp"
+            android:layout_marginBottom="10dp"
+            android:background="@drawable/commit_blank_corner_bac"
+            android:text="继续播放"
+            android:textColor="@color/visitor_info" />
 
     </LinearLayout>
-
-
-</ScrollView>
+</LinearLayout>

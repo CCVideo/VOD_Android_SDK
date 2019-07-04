@@ -1,9 +1,6 @@
 package com.bokecc.vod.data;
 
-import com.bokecc.vod.R;
-
 import java.util.ArrayList;
-import java.util.List;
 
 public class DataUtil {
     //配置自己的视频ID

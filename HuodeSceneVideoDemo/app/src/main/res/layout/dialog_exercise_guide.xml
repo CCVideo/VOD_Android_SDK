@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    >
+
+    <ImageView
+        android:id="@+id/iv_exercise_guide"
+        android:layout_width="323dp"
+        android:layout_height="120dp"
+        android:src="@mipmap/iv_exercise_guide"/>
+
+
+</LinearLayout>
