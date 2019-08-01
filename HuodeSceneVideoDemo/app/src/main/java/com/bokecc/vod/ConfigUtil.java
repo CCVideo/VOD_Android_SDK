@@ -1,7 +1,6 @@
 package com.bokecc.vod;
 
 public class ConfigUtil {
-
     //账号ID 可以替换为自己的USERID
     public static final String USERID = "391E6E3340A00767";
     //可以替换为自己的API_KEY

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/white"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <ImageView
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:scaleType="fitXY"
+        android:src="@mipmap/iv_device" />
+
+    <TextView
+        android:id="@+id/tv_device_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="15dp"
+        android:ellipsize="end"
+        android:lines="1"
+        android:textColor="@color/exeTitle"
+        android:textSize="15sp"
+        android:text="投屏设备"/>
+
+</LinearLayout>

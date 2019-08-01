@@ -2,10 +2,12 @@ package com.bokecc.vod.play;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -16,8 +18,10 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -30,7 +34,25 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.bokecc.projection.ProjectionBrowseRegistryListener;
+import com.bokecc.projection.ProjectionControlCallback;
+import com.bokecc.projection.ProjectionControlReceiveCallback;
+import com.bokecc.projection.ProjectionDLANPlayState;
+import com.bokecc.projection.ProjectionDevice;
+import com.bokecc.projection.ProjectionDeviceList;
+import com.bokecc.projection.ProjectionDeviceListChangedListener;
+import com.bokecc.projection.ProjectionDeviceManager;
+import com.bokecc.projection.ProjectionIDevice;
+import com.bokecc.projection.ProjectionIResponse;
+import com.bokecc.projection.ProjectionIntents;
+import com.bokecc.projection.ProjectionManager;
+import com.bokecc.projection.ProjectionPlayControl;
+import com.bokecc.projection.ProjectionPositionResponse;
+import com.bokecc.projection.ProjectionUpnpService;
+import com.bokecc.projection.ProjectionUtils;
+import com.bokecc.projection.ProjectionVolumeResponse;
 import com.bokecc.sdk.mobile.ad.DWMediaAD;
 import com.bokecc.sdk.mobile.ad.DWMediaADListener;
 import com.bokecc.sdk.mobile.ad.FrontADInfo;
@@ -48,7 +70,9 @@ import com.bokecc.sdk.mobile.play.OnVisitMsgListener;
 import com.bokecc.sdk.mobile.play.PlayInfo;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.HuodeApplication;
+import com.bokecc.vod.MainActivity;
 import com.bokecc.vod.R;
+import com.bokecc.vod.adapter.DeviceAdapter;
 import com.bokecc.vod.adapter.PlayListAdapter;
 import com.bokecc.vod.data.DataSet;
 import com.bokecc.vod.data.Exercise;
@@ -67,6 +91,7 @@ import com.bokecc.vod.inter.MoreSettings;
 import com.bokecc.vod.inter.SelectDefinition;
 import com.bokecc.vod.inter.SelectSpeed;
 import com.bokecc.vod.inter.SelectVideo;
+
 import com.bokecc.vod.utils.MultiUtils;
 import com.bokecc.vod.view.CheckNetworkDialog;
 import com.bokecc.vod.view.DoExerciseDialog;
@@ -90,12 +115,15 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 
+import org.fourthline.cling.model.meta.Device;
+import org.fourthline.cling.support.model.PositionInfo;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -230,6 +258,35 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     private int netWorkStatus = 1;
     private boolean isNoNetPause = false;
     private boolean isShowUseMobie = false;
+    //投屏
+    private String playUrl;
+    private TextView tv_current_wifi, tv_projection_state;
+    private List<ProjectionDevice> datas;
+    private DeviceAdapter deviceAdapter;
+    private ListView lv_device;
+    private ImageView iv_research, iv_plus_volume, iv_minus_volume, iv_portrait_projection, iv_projection_back,
+            iv_projection_screen_back;
+    private Button btn_close_projection;
+    private boolean isBindService = false, isProjectionContinue = true, isGetProjectionVolume = true;
+    private Integer volumeValue = 0;
+    private boolean isProjectioning = false, isProjectioningPause = false;
+    private RelativeLayout rl_projectioning;
+    private ProjectionTask projectionTask;
+    private LinearLayout ll_select_projection_device, ll_searching_device, ll_not_find_device, ll_connect_projection_fail,
+            ll_projection_volume, ll_projection_screen;
+    private Timer projectionTimer, searchDeviceTimer;
+    private SearchDeviceTask searchDeviceTask;
+    private int SEARCH_DEVICE_TIME = 8;
+    //搜索发现投屏设备
+    private ProjectionBrowseRegistryListener registryListener = new ProjectionBrowseRegistryListener();
+    public static final int PLAY_ACTION = 1;
+    public static final int PAUSE_ACTION = 2;
+    public static final int STOP_ACTION = 3;
+    public static final int ERROR_ACTION = 4;
+    //投屏控制
+    private ProjectionPlayControl projectionPlayControl = new ProjectionPlayControl();
+    private Handler mHandler = new ProjectionHandler();
+    private BroadcastReceiver mTransportStateBroadcastReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -241,7 +298,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         regNetworkReceiver();
         initView();
         initPlayer();
-
     }
 
     //注册网络状态监听
@@ -295,6 +351,12 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         tv_video = findViewById(R.id.tv_video);
         ll_load_video = findViewById(R.id.ll_load_video);
         ll_progress_and_fullscreen = findViewById(R.id.ll_progress_and_fullscreen);
+        ll_select_projection_device = findViewById(R.id.ll_select_projection_device);
+        ll_projection_screen = findViewById(R.id.ll_projection_screen);
+        ll_projection_volume = findViewById(R.id.ll_projection_volume);
+        ll_searching_device = findViewById(R.id.ll_searching_device);
+        ll_not_find_device = findViewById(R.id.ll_not_find_device);
+        ll_connect_projection_fail = findViewById(R.id.ll_connect_projection_fail);
         ll_title_and_audio = findViewById(R.id.ll_title_and_audio);
         ll_speed_def_select = findViewById(R.id.ll_speed_def_select);
         ll_play_error = findViewById(R.id.ll_play_error);
@@ -312,10 +374,21 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         ll_rewatch = findViewById(R.id.ll_rewatch);
         ll_ad = findViewById(R.id.ll_ad);
         iv_pause_ad = findViewById(R.id.iv_pause_ad);
+        iv_projection_back = findViewById(R.id.iv_projection_back);
+        iv_projection_screen_back = findViewById(R.id.iv_projection_screen_back);
         gifProgressView = findViewById(R.id.gif_progress_view);
         gifProgressView.setMaxDuration(gifMax);
         gifProgressView.setMinTime(gifMin);
         gifProgressView.setData(progressObject);
+        tv_current_wifi = findViewById(R.id.tv_current_wifi);
+        tv_projection_state = findViewById(R.id.tv_projection_state);
+        lv_device = findViewById(R.id.lv_device);
+        iv_research = findViewById(R.id.iv_research);
+        iv_plus_volume = findViewById(R.id.iv_plus_volume);
+        iv_minus_volume = findViewById(R.id.iv_minus_volume);
+        iv_portrait_projection = findViewById(R.id.iv_portrait_projection);
+        rl_projectioning = findViewById(R.id.rl_projectioning);
+        btn_close_projection = findViewById(R.id.btn_close_projection);
 
         tv_video_title.setText(videoTitle);
         iv_back.setOnClickListener(this);
@@ -336,11 +409,18 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         ivGifStop.setOnClickListener(this);
         tv_skip_ad.setOnClickListener(this);
         tv_know_more.setOnClickListener(this);
+        iv_research.setOnClickListener(this);
         iv_lock_or_unlock.setOnClickListener(this);
         iv_ad_full_screen.setOnClickListener(this);
         iv_pause_ad.setOnClickListener(this);
         tv_close_pause_ad.setOnClickListener(this);
         ll_rewatch.setOnClickListener(this);
+        iv_projection_back.setOnClickListener(this);
+        iv_plus_volume.setOnClickListener(this);
+        iv_minus_volume.setOnClickListener(this);
+        iv_portrait_projection.setOnClickListener(this);
+        btn_close_projection.setOnClickListener(this);
+        iv_projection_screen_back.setOnClickListener(this);
         tv_video.setSurfaceTextureListener(this);
         //本地播放音频
         if (!TextUtils.isEmpty(format) && format.equals(".mp3")) {
@@ -349,7 +429,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         }
 
         batchDownload = new ArrayList<>();
-//        videoList = DataUtil.getVideoList();
         videoList = getIntent().getParcelableArrayListExtra("videoDatas");
         if (videoList != null && videoList.size() > 0) {
             videoIds = new ArrayList<>();
@@ -375,13 +454,28 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             @Override
             public void onStopTrackingTouch(HotspotSeekBar seekBar, float trackStopPercent) {
                 int stopPostion = (int) (trackStopPercent * player.getDuration());
-                player.seekTo(stopPostion);
-                //拖动进度条展示课堂练习
-                if (isShowExercise(stopPostion)) {
-                    isShowConfirmExerciseDialog = true;
+                if (isProjectioning) {
+                    projectionPlayControl.seek(stopPostion, new ProjectionControlCallback() {
+                        @Override
+                        public void success(ProjectionIResponse response) {
+
+                        }
+
+                        @Override
+                        public void fail(ProjectionIResponse response) {
+
+                        }
+                    });
                 } else {
-                    isShowConfirmExerciseDialog = false;
+                    player.seekTo(stopPostion);
+                    //拖动进度条展示课堂练习
+                    if (isShowExercise(stopPostion)) {
+                        isShowConfirmExerciseDialog = true;
+                    } else {
+                        isShowConfirmExerciseDialog = false;
+                    }
                 }
+
             }
         });
         //点击打点位置，从这个位置开始播放
@@ -395,6 +489,10 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         lv_play_list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if (isProjectioning) {
+                    MultiUtils.showToast(activity, "投屏中，暂不支持切换");
+                    return;
+                }
                 HuodeVideoInfo item = (HuodeVideoInfo) playListAdapter.getItem(position);
                 if (item.isShowSelectButton()) {
                     if (item.isSelectedDownload()) {
@@ -432,6 +530,15 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                     hideViews();
                     return;
                 }
+                if (isProjectioning) {
+                    iv_lock_or_unlock.setVisibility(View.GONE);
+                    iv_create_gif.setVisibility(View.GONE);
+                } else {
+                    if (isFullScreen) {
+                        iv_lock_or_unlock.setVisibility(View.VISIBLE);
+                        iv_create_gif.setVisibility(View.VISIBLE);
+                    }
+                }
                 if (isLock) {
                     iv_lock_or_unlock.setImageResource(R.mipmap.iv_lock);
                     iv_lock_or_unlock.setVisibility(View.VISIBLE);
@@ -449,6 +556,26 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         videoPositionDBHelper = new VideoPositionDBHelper(ObjectBox.get());
         getLastVideoPostion();
 
+        lv_device.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ProjectionDevice item = (ProjectionDevice) deviceAdapter.getItem(position);
+                if (ProjectionUtils.isNull(item)) {
+                    return;
+                }
+
+                ProjectionManager.getInstance().setSelectedDevice(item);
+                Device device = item.getDevice();
+                if (ProjectionUtils.isNull(device)) {
+                    return;
+                }
+                ll_select_projection_device.setVisibility(View.GONE);
+                cancelSearchDeviceTimer();
+                rl_projectioning.setVisibility(View.VISIBLE);
+                MultiUtils.setStatusBarColor(activity, R.color.black, false);
+                playProjection();
+            }
+        });
     }
 
     private void getLastVideoPostion() {
@@ -474,7 +601,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         player.setOnCompletionListener(this);
         player.setOnDreamWinErrorListener(this);
         player.setOnErrorListener(this);
-
         //设置CustomId
         player.setCustomId("HIHA2019");
         //获取字幕信息
@@ -579,6 +705,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         if (isLocalPlay) {
             btn_download.setVisibility(View.INVISIBLE);
             iv_switch_to_audio.setVisibility(View.GONE);
+            iv_portrait_projection.setVisibility(View.GONE);
             //离线播放
             if (Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {
                 path = Environment.getExternalStorageDirectory() + "/".concat(ConfigUtil.DOWNLOAD_PATH).concat("/").concat(videoTitle).concat(format);
@@ -854,10 +981,14 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.iv_back:
-                if (isFullScreen && !isLocalPlay) {
-                    setPortrait();
+                if (isProjectioning) {
+                    projectionBack();
                 } else {
-                    finish();
+                    if (isFullScreen && !isLocalPlay) {
+                        setPortrait();
+                    } else {
+                        finish();
+                    }
                 }
                 break;
 
@@ -898,7 +1029,16 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                 selectVideo();
                 break;
             case R.id.iv_play_pause:
-                playOrPauseVideo();
+                if (isProjectioning) {
+                    if (isProjectioningPause) {
+                        playProjection();
+                    } else {
+                        pauseProjection();
+                    }
+                } else {
+                    playOrPauseVideo();
+                }
+
                 break;
             case R.id.iv_more_settings:
                 showMoreSettings();
@@ -985,6 +1125,40 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                 ll_pre_watch_over.setVisibility(View.GONE);
                 tv_watch_tip.setVisibility(View.VISIBLE);
                 break;
+            case R.id.iv_projection_back:
+                hideSelectProjectionDevice();
+                break;
+
+            case R.id.iv_research:
+                SEARCH_DEVICE_TIME = 8;
+                ll_not_find_device.setVisibility(View.GONE);
+                ll_searching_device.setVisibility(View.VISIBLE);
+                ProjectionManager.getInstance().getRegistry().removeAllRemoteDevices();
+                getNetworkInfo();
+                break;
+            case R.id.iv_plus_volume:
+                //增加投屏音量
+                changeProjectionVolume(true);
+                break;
+            case R.id.iv_minus_volume:
+                //减少投屏音量
+                changeProjectionVolume(false);
+                break;
+            case R.id.iv_portrait_projection:
+                showSelectProjectionDevice();
+                break;
+            case R.id.btn_close_projection:
+                ll_connect_projection_fail.setVisibility(View.GONE);
+                stopProjection();
+                projectionIsOver();
+                if (isPrepared) {
+                    startVideoTimer();
+                }
+                break;
+            case R.id.iv_projection_screen_back:
+                hideProjectionScreenTip();
+                break;
+
         }
     }
 
@@ -1008,7 +1182,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     private void showViews() {
         controlHide = 8;
         showOtherOperations();
-        if (isFullScreen) {
+        if (isFullScreen && !isProjectioning) {
             iv_lock_or_unlock.setVisibility(View.VISIBLE);
         } else {
             iv_lock_or_unlock.setVisibility(View.GONE);
@@ -1017,7 +1191,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         if (isAudioMode) {
             iv_create_gif.setVisibility(View.GONE);
         } else {
-            if (isFullScreen) {
+            if (isFullScreen && !isProjectioning) {
                 iv_create_gif.setVisibility(View.VISIBLE);
             }
         }
@@ -1118,6 +1292,12 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             public void setBrightness(int brightness) {
                 currentBrightness = brightness;
             }
+
+            @Override
+            public void landScapeProjection() {
+                setPortrait();
+                showSelectProjectionDevice();
+            }
         });
         moreSettingsDialog.show();
         hideViews();
@@ -1125,6 +1305,322 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             @Override
             public void onDismiss(DialogInterface dialog) {
                 showOtherOperations();
+            }
+        });
+    }
+
+    private void showSelectProjectionDevice() {
+        if (isPlayVideo) {
+            playOrPauseVideo();
+        }
+        isProjectionContinue = true;
+        isGetProjectionVolume = true;
+        if (playUrl.contains(".pcm?")) {
+            ll_projection_screen.setVisibility(View.VISIBLE);
+        } else {
+            MultiUtils.setStatusBarColor(activity, R.color.white, true);
+            ll_select_projection_device.setVisibility(View.VISIBLE);
+            ll_projection_volume.setVisibility(View.VISIBLE);
+            getNetworkInfo();
+            bindService();
+            registerReceivers();
+            if (deviceAdapter == null) {
+                datas = new ArrayList<>();
+                deviceAdapter = new DeviceAdapter(activity, datas);
+                lv_device.setAdapter(deviceAdapter);
+            }
+
+            getDeviceList();
+
+            // 投屏设备监听
+            registryListener.setOnDeviceListChangedListener(new ProjectionDeviceListChangedListener() {
+                @Override
+                public void onDeviceAdded(final ProjectionIDevice device) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            datas.add((ProjectionDevice) device);
+                            deviceAdapter.notifyDataSetChanged();
+                        }
+                    });
+                }
+
+                @Override
+                public void onDeviceRemoved(final ProjectionIDevice device) {
+                    runOnUiThread(new Runnable() {
+                        public void run() {
+                            datas.remove(device);
+                            deviceAdapter.notifyDataSetChanged();
+                        }
+                    });
+                }
+            });
+
+            SEARCH_DEVICE_TIME = 8;
+            startSearchDeviceTimer();
+        }
+    }
+
+    //获取网络情况
+    private void getNetworkInfo() {
+        int netWorkStatus = MultiUtils.getNetWorkStatus(activity);
+        if (netWorkStatus == 0) {
+            tv_current_wifi.setText("当前无网络连接");
+        } else if (netWorkStatus == 2) {
+            tv_current_wifi.setText("当前是手机热点");
+        } else {
+            String connectWifiName = MultiUtils.getConnectWifiName(activity);
+            if (!TextUtils.isEmpty(connectWifiName)) {
+                tv_current_wifi.setText("当前WIFI:" + connectWifiName);
+            }
+        }
+    }
+
+    /**
+     * 获取投屏设备列表
+     */
+    private void getDeviceList() {
+        Collection<ProjectionDevice> devices = ProjectionManager.getInstance().getDmrDevices();
+        ProjectionDeviceList.getInstance().setClingDeviceList(devices);
+        if (datas != null) {
+            datas.removeAll(datas);
+        }
+        if (devices != null) {
+            datas.addAll(devices);
+            deviceAdapter.notifyDataSetChanged();
+        }
+
+    }
+
+    private void bindService() {
+        Intent serviceIntent = new Intent(
+                activity, ProjectionUpnpService.class);
+        bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE);
+        isBindService = true;
+    }
+
+    private ServiceConnection serviceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName className, IBinder service) {
+            ProjectionUpnpService.LocalBinder binder = (ProjectionUpnpService.LocalBinder) service;
+            ProjectionUpnpService projectionUpnpService = binder.getService();
+
+            ProjectionManager projectionManager = ProjectionManager.getInstance();
+            projectionManager.setUpnpService(projectionUpnpService);
+            projectionManager.setDeviceManager(new ProjectionDeviceManager());
+            projectionManager.getRegistry().addListener(registryListener);
+            projectionManager.searchDevices();
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName className) {
+            ProjectionManager.getInstance().setUpnpService(null);
+        }
+    };
+
+    private final class ProjectionHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what) {
+                case PLAY_ACTION:
+                    iv_play_pause.setImageResource(R.mipmap.iv_pause);
+                    isProjectioningPause = false;
+                    tv_projection_state.setText("正在投屏播放中");
+                    if (currentPosition > 0 && isProjectionContinue) {
+                        projectionPlayControl.seek((int) currentPosition, new ProjectionControlCallback() {
+                            @Override
+                            public void success(ProjectionIResponse response) {
+                                isProjectionContinue = false;
+                            }
+
+                            @Override
+                            public void fail(ProjectionIResponse response) {
+
+                            }
+                        });
+                    }
+                    break;
+                case PAUSE_ACTION:
+                    isProjectioningPause = true;
+                    iv_play_pause.setImageResource(R.mipmap.iv_play);
+                    tv_projection_state.setText("已暂停");
+                    projectionPlayControl.setCurrentState(ProjectionDLANPlayState.PAUSE);
+                    break;
+                case STOP_ACTION:
+                    if (isPrepared) {
+                        startVideoTimer();
+                    }
+                    projectionIsOver();
+                    break;
+                case ERROR_ACTION:
+                    ll_connect_projection_fail.setVisibility(View.VISIBLE);
+                    ll_projection_volume.setVisibility(View.INVISIBLE);
+                    break;
+            }
+        }
+    }
+
+    //    接收状态信息
+    private class TransportStateBroadcastReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+            if (ProjectionIntents.ACTION_PLAYING.equals(action)) {
+                mHandler.sendEmptyMessage(PLAY_ACTION);
+
+            } else if (ProjectionIntents.ACTION_PAUSED_PLAYBACK.equals(action)) {
+                mHandler.sendEmptyMessage(PAUSE_ACTION);
+
+            } else if (ProjectionIntents.ACTION_STOPPED.equals(action)) {
+                mHandler.sendEmptyMessage(STOP_ACTION);
+
+            }
+        }
+    }
+
+    private void registerReceivers() {
+        mTransportStateBroadcastReceiver = new TransportStateBroadcastReceiver();
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(ProjectionIntents.ACTION_PLAYING);
+        filter.addAction(ProjectionIntents.ACTION_PAUSED_PLAYBACK);
+        filter.addAction(ProjectionIntents.ACTION_STOPPED);
+        filter.addAction(ProjectionIntents.ACTION_TRANSITIONING);
+        registerReceiver(mTransportStateBroadcastReceiver, filter);
+    }
+
+    //播放投屏视频
+    private void playProjection() {
+        @ProjectionDLANPlayState.DLANPlayStates int currentState = projectionPlayControl.getCurrentState();
+
+        /**
+         * 通过判断状态 来决定 是继续播放 还是重新播放
+         */
+        if (currentState == ProjectionDLANPlayState.STOP) {
+            projectionPlayControl.playNew(playUrl, new ProjectionControlCallback() {
+                @Override
+                public void success(ProjectionIResponse response) {
+                    isProjectioning = true;
+                    isProjectioningPause = false;
+                    projectionPlayControl.setCurrentState(ProjectionDLANPlayState.PLAY);
+                    ProjectionManager.getInstance().registerAVTransport(activity);
+                    ProjectionManager.getInstance().registerRenderingControl(activity);
+                    startProjectionTimer();
+                    mHandler.sendEmptyMessage(PLAY_ACTION);
+                }
+
+                @Override
+                public void fail(ProjectionIResponse response) {
+                    mHandler.sendEmptyMessage(ERROR_ACTION);
+                }
+            });
+        } else {
+            projectionPlayControl.play(new ProjectionControlCallback() {
+                @Override
+                public void success(ProjectionIResponse response) {
+                    isProjectioningPause = false;
+                    isProjectioning = true;
+                    projectionPlayControl.setCurrentState(ProjectionDLANPlayState.PLAY);
+                    mHandler.sendEmptyMessage(PLAY_ACTION);
+                }
+
+                @Override
+                public void fail(ProjectionIResponse response) {
+                    mHandler.sendEmptyMessage(ERROR_ACTION);
+                }
+            });
+        }
+    }
+
+    //暂停投屏
+    private void pauseProjection() {
+        mHandler.sendEmptyMessage(PAUSE_ACTION);
+        projectionPlayControl.pause(new ProjectionControlCallback() {
+            @Override
+            public void success(ProjectionIResponse response) {
+                isProjectioningPause = true;
+                iv_play_pause.setImageResource(R.mipmap.iv_play);
+                projectionPlayControl.setCurrentState(ProjectionDLANPlayState.PAUSE);
+
+
+            }
+
+            @Override
+            public void fail(ProjectionIResponse response) {
+
+            }
+
+        });
+    }
+
+    //停止投屏
+    private void stopProjection() {
+        projectionPlayControl.stop(new ProjectionControlCallback() {
+            @Override
+            public void success(ProjectionIResponse response) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        projectionIsOver();
+                    }
+                });
+            }
+
+            @Override
+            public void fail(ProjectionIResponse response) {
+
+            }
+        });
+    }
+
+    private void projectionIsOver() {
+        projectionPlayControl.setCurrentState(ProjectionDLANPlayState.STOP);
+        isProjectioning = false;
+        rl_projectioning.setVisibility(View.GONE);
+        iv_play_pause.setImageResource(R.mipmap.iv_play);
+        cancelProjectionTimer();
+
+    }
+
+    //调整投屏音量
+    private void changeProjectionVolume(final boolean isPlus) {
+        projectionPlayControl.getVolume(new ProjectionControlReceiveCallback() {
+            @Override
+            public void receive(ProjectionIResponse response) {
+                if (isGetProjectionVolume) {
+                    ProjectionVolumeResponse projectionVolumeResponse = (ProjectionVolumeResponse) response;
+                    volumeValue = projectionVolumeResponse.getResponse();
+                    isGetProjectionVolume = false;
+                }
+
+                if (isPlus) {
+                    volumeValue = volumeValue + 2;
+                } else {
+                    volumeValue = volumeValue - 2;
+                }
+                if (volumeValue < 0) {
+                    volumeValue = 0;
+                }
+                projectionPlayControl.setVolume(volumeValue, new ProjectionControlCallback() {
+                    @Override
+                    public void success(ProjectionIResponse response) {
+
+                    }
+
+                    @Override
+                    public void fail(ProjectionIResponse response) {
+
+                    }
+                });
+            }
+
+            @Override
+            public void success(ProjectionIResponse response) {
+
+            }
+
+            @Override
+            public void fail(ProjectionIResponse response) {
             }
         });
     }
@@ -1259,6 +1755,17 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     private void showOtherOperations() {
         ll_progress_and_fullscreen.setVisibility(View.VISIBLE);
         ll_title_and_audio.setVisibility(View.VISIBLE);
+        if (isProjectioning) {
+            ll_title_and_audio.setBackgroundColor(getResources().getColor(R.color.transparent));
+            iv_switch_to_audio.setVisibility(View.INVISIBLE);
+            iv_portrait_projection.setVisibility(View.INVISIBLE);
+        } else {
+            if (!isFullScreen) {
+                iv_switch_to_audio.setVisibility(View.VISIBLE);
+                iv_portrait_projection.setVisibility(View.VISIBLE);
+            }
+            ll_title_and_audio.setBackgroundColor(getResources().getColor(R.color.play_ope_bac_color));
+        }
         iv_back.setVisibility(View.VISIBLE);
     }
 
@@ -1325,6 +1832,9 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     @Override
     public void onPrepared(IMediaPlayer iMediaPlayer) {
         playInfo = player.getPlayInfo();
+        if (playInfo != null) {
+            playUrl = playInfo.getPlayUrl();
+        }
         isPrepared = true;
         //切换清晰度续播
         if (switchDefPos > 0) {
@@ -1747,9 +2257,9 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             ll_audio_view.setVisibility(View.VISIBLE);
             tv_play_definition.setVisibility(View.GONE);
             iv_create_gif.setVisibility(View.GONE);
-            iv_switch_to_audio.setImageResource(R.mipmap.iv_video_mode_big);
+            iv_switch_to_audio.setImageResource(R.mipmap.iv_video_mode);
         } else {
-            iv_switch_to_audio.setImageResource(R.mipmap.iv_audio_mode_big);
+            iv_switch_to_audio.setImageResource(R.mipmap.iv_audio_mode);
             if (isFullScreen && !isLocalPlay) {
                 iv_more_settings.setVisibility(View.VISIBLE);
             }
@@ -1798,10 +2308,11 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         iv_next_video.setVisibility(View.GONE);
         iv_lock_or_unlock.setVisibility(View.GONE);
         iv_create_gif.setVisibility(View.GONE);
+        iv_more_settings.setVisibility(View.GONE);
         iv_switch_to_audio.setVisibility(View.VISIBLE);
+        iv_portrait_projection.setVisibility(View.VISIBLE);
         //小屏播放隐藏打点信息
         sb_progress.setHotspotShown(false);
-        iv_more_settings.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         RelativeLayout.LayoutParams videoLayoutParams = (RelativeLayout.LayoutParams) rl_play_video.getLayoutParams();
@@ -1823,11 +2334,20 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             iv_more_settings.setVisibility(View.VISIBLE);
         }
         iv_switch_to_audio.setVisibility(View.GONE);
+        iv_portrait_projection.setVisibility(View.GONE);
         if (!isAudioMode && !isPlayFrontAd) {
             iv_create_gif.setVisibility(View.VISIBLE);
         }
         if (!isPlayFrontAd) {
             iv_lock_or_unlock.setVisibility(View.VISIBLE);
+        }
+
+        if (isProjectioning) {
+            ll_speed_def_select.setVisibility(View.GONE);
+            iv_next_video.setVisibility(View.GONE);
+            iv_lock_or_unlock.setVisibility(View.GONE);
+            iv_create_gif.setVisibility(View.GONE);
+            iv_more_settings.setVisibility(View.GONE);
         }
         //全屏播放展示打点信息
         sb_progress.setHotspotShown(true);
@@ -1896,6 +2416,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
 
     //开启更新播放进度任务
     private void startVideoTimer() {
+        cancelProjectionTimer();
         cancelVideoTimer();
         timer = new Timer();
         videoTask = new VideoTask();
@@ -1976,6 +2497,111 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         }
     }
 
+    //开启投屏进度任务
+    private void startProjectionTimer() {
+        cancelVideoTimer();
+        cancelProjectionTimer();
+        projectionTimer = new Timer();
+        projectionTask = new ProjectionTask();
+        projectionTimer.schedule(projectionTask, 0, 1000);
+    }
+
+    //取消投屏进度任务
+    private void cancelProjectionTimer() {
+
+        if (projectionTimer != null) {
+            projectionTimer.cancel();
+        }
+        if (projectionTask != null) {
+            projectionTask.cancel();
+        }
+    }
+
+    //投屏进度计时器
+    class ProjectionTask extends TimerTask {
+
+        @Override
+        public void run() {
+            projectionPlayControl.getPositionInfo(new ProjectionControlReceiveCallback() {
+                @Override
+                public void receive(ProjectionIResponse response) {
+                    ProjectionPositionResponse projectionPositionResponse = (ProjectionPositionResponse) response;
+                    PositionInfo positionInfo = projectionPositionResponse.getResponse();
+                    final long trackDurationSeconds = positionInfo.getTrackDurationSeconds();
+                    final long trackElapsedSeconds = positionInfo.getTrackElapsedSeconds();
+                    if (MultiUtils.isActivityAlive(activity)) {
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (trackDurationSeconds > 0) {
+                                    tv_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr((trackElapsedSeconds * 1000)));
+                                    sb_progress.setProgress((int) trackElapsedSeconds, (int) trackDurationSeconds);
+                                    if (trackElapsedSeconds>=(trackDurationSeconds-2)){
+                                        mHandler.sendEmptyMessage(STOP_ACTION);
+                                    }
+                                }
+
+
+                            }
+                        });
+                    }
+                }
+
+                @Override
+                public void success(ProjectionIResponse response) {
+
+                }
+
+                @Override
+                public void fail(ProjectionIResponse response) {
+
+                }
+            });
+
+
+        }
+    }
+
+    //开启搜寻投屏设备任务
+    private void startSearchDeviceTimer() {
+        cancelSearchDeviceTimer();
+        searchDeviceTimer = new Timer();
+        searchDeviceTask = new SearchDeviceTask();
+        searchDeviceTimer.schedule(searchDeviceTask, 0, 1000);
+    }
+
+    //取消搜寻投屏设备任务
+    private void cancelSearchDeviceTimer() {
+        if (searchDeviceTimer != null) {
+            searchDeviceTimer.cancel();
+        }
+        if (searchDeviceTask != null) {
+            searchDeviceTask.cancel();
+        }
+    }
+
+    //搜寻投屏设备计时器
+    class SearchDeviceTask extends TimerTask {
+        @Override
+        public void run() {
+            if (MultiUtils.isActivityAlive(activity)) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        SEARCH_DEVICE_TIME--;
+                        if (SEARCH_DEVICE_TIME == 0 && datas.size() < 1) {
+                            ll_searching_device.setVisibility(View.GONE);
+                            ll_not_find_device.setVisibility(View.VISIBLE);
+                        } else if (datas.size() > 0) {
+                            ll_searching_device.setVisibility(View.VISIBLE);
+                            ll_not_find_device.setVisibility(View.GONE);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
     //展示课堂练习
     private void showExercise() {
         exeDialog = new ShowExeDialog(activity, new ExeOperation() {
@@ -1993,7 +2619,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
 
         });
         exeDialog.show();
-        if (isPlayVideo){
+        if (isPlayVideo) {
             playOrPauseVideo();
         }
     }
@@ -2007,7 +2633,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             }
         });
         doExerciseDialog.show();
-        if (isChangePlayState){
+        if (isChangePlayState) {
             playOrPauseVideo();
         }
         boolean isReadExerciseGuide = MultiUtils.getIsReadExerciseGuide();
@@ -2146,7 +2772,9 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         public void seeBackPlay(int backplay, boolean isRight) {
             player.seekTo(backplay * 1000);
             playOrPauseVideo();
-            questions.remove(questions.firstKey());
+            if (isRight) {
+                questions.remove(questions.firstKey());
+            }
         }
 
         @Override
@@ -2359,6 +2987,8 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         cancelVideoTimer();
         cancelControlHideView();
         cancelAdTimer();
+        cancelProjectionTimer();
+        cancelSearchDeviceTimer();
         if (player != null) {
             player.pause();
             player.stop();
@@ -2367,6 +2997,19 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
 
         if (netReceiver != null) {
             unregisterReceiver(netReceiver);
+        }
+        if (isBindService) {
+            unbindService(serviceConnection);
+            ProjectionManager.getInstance().destroy();
+            ProjectionManager.getInstance().destroy();
+        }
+
+        if (mTransportStateBroadcastReceiver != null) {
+            unregisterReceiver(mTransportStateBroadcastReceiver);
+        }
+        mHandler.removeCallbacksAndMessages(null);
+        if (isProjectioning) {
+            stopProjection();
         }
     }
 
@@ -2380,10 +3023,50 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         if (isLock) {
             return;
         }
-        if (isFullScreen && !isLocalPlay) {
+        if (ll_select_projection_device.getVisibility() == View.VISIBLE) {
+            hideSelectProjectionDevice();
+            return;
+        }
+        if (ll_projection_screen.getVisibility() == View.VISIBLE) {
+            hideProjectionScreenTip();
+            return;
+        }
+
+
+        if (isProjectioning) {
+            projectionBack();
+        } else {
+            if (isFullScreen && !isLocalPlay) {
+                setPortrait();
+            } else {
+                super.onBackPressed();
+            }
+        }
+    }
+
+    private void hideProjectionScreenTip() {
+        ll_projection_screen.setVisibility(View.GONE);
+        playOrPauseVideo();
+        MultiUtils.setStatusBarColor(this, R.color.black, false);
+    }
+
+    private void hideSelectProjectionDevice() {
+        ll_select_projection_device.setVisibility(View.GONE);
+        cancelSearchDeviceTimer();
+        playOrPauseVideo();
+        MultiUtils.setStatusBarColor(this, R.color.black, false);
+    }
+
+    //投屏过程中返回调用
+    private void projectionBack() {
+        if (isFullScreen) {
             setPortrait();
         } else {
-            super.onBackPressed();
+            if (isPrepared) {
+                iv_play_pause.setImageResource(R.mipmap.iv_play);
+                startVideoTimer();
+            }
+            stopProjection();
         }
     }
 

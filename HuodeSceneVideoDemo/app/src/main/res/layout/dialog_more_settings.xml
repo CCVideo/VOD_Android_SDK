@@ -37,6 +37,29 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/ll_landscape_projection_screen"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="10dp">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@mipmap/iv_landscape_projection_screen"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/more_setting_color"
+                android:layout_marginTop="5dp"
+                android:text="投屏"/>
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/ll_play_audio"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

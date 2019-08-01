@@ -13,4 +13,6 @@ public interface MoreSettings {
 
     void setBrightness(int brightness);
 
+    void landScapeProjection();
+
 }

@@ -19,7 +19,10 @@ allprojects {
     repositories {
         google()
         jcenter()
+        //必须配置
         maven {url 'https://dl.bintray.com/bokecc/maven'}
+        //使用投屏功能时添加此配置，不使用不需要
+        maven { url 'http://4thline.org/m2'}
     }
 }
 

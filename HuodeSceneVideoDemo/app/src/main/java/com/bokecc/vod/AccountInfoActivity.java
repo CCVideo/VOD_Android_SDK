@@ -14,9 +14,11 @@ import com.bokecc.vod.utils.MultiUtils;
 
 public class AccountInfoActivity extends AppCompatActivity {
     private Activity activity;
-    private TextView tv_user_id,tv_api_key;
+    private TextView tv_user_id, tv_api_key;
     private EditText et_verification_code;
     private ImageView iv_back;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,9 +33,10 @@ public class AccountInfoActivity extends AppCompatActivity {
         tv_api_key = findViewById(R.id.tv_api_key);
         et_verification_code = findViewById(R.id.et_verification_code);
 
+
         iv_back = findViewById(R.id.iv_back);
 
-        if (!TextUtils.isEmpty(MultiUtils.getVerificationCode())){
+        if (!TextUtils.isEmpty(MultiUtils.getVerificationCode())) {
             et_verification_code.setText(MultiUtils.getVerificationCode());
         }
 

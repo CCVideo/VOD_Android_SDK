@@ -13,6 +13,9 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.wifi.WifiConfiguration;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.storage.StorageManager;
@@ -44,12 +47,16 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
+import java.util.List;
+
+import static android.content.Context.WIFI_SERVICE;
 
 /**
  *
  */
 public class MultiUtils {
 
+    public static String LOG_TAG = "huode";
     private static String DOWNLOAD_CONTENT = "content://downloads/public_downloads";
 
     public static void showToast(Activity activity, final String content) {
@@ -90,7 +97,7 @@ public class MultiUtils {
     }
 
     // 将毫秒转为分钟：秒
-    public static String millsecondsToMinuteSecondStr(long ms){
+    public static String millsecondsToMinuteSecondStr(long ms) {
         int seconds = (int) (ms / 1000);
         String result = "";
         int min = 0, second = 0;
@@ -138,22 +145,23 @@ public class MultiUtils {
     }
 
     //展示视频封面图片
-    public static void showVideoCover(ImageView imageView,String imgUrl){
-        if (TextUtils.isEmpty(imgUrl)){
+    public static void showVideoCover(ImageView imageView, String imgUrl) {
+        if (TextUtils.isEmpty(imgUrl)) {
             imageView.setImageResource(R.mipmap.iv_default_img);
-        }else {
+        } else {
             Glide.with(HuodeApplication.getContext()).load(imgUrl).diskCacheStrategy(DiskCacheStrategy.ALL).placeholder(R.color.dialogBac).into(imageView);
         }
     }
 
     //展示圆角图片
-    public static void showCornerVideoCover(ImageView imageView,String imgUrl){
-        if (TextUtils.isEmpty(imgUrl)){
+    public static void showCornerVideoCover(ImageView imageView, String imgUrl) {
+        if (TextUtils.isEmpty(imgUrl)) {
             imageView.setImageResource(R.mipmap.iv_default_img);
-        }else {
-            Glide.with(HuodeApplication.getContext()).load(imgUrl).diskCacheStrategy(DiskCacheStrategy.ALL).placeholder(R.color.dialogBac).transform(new CenterCrop(HuodeApplication.getContext()),new RoundCornerTransform(HuodeApplication.getContext(),10)).into(imageView);
+        } else {
+            Glide.with(HuodeApplication.getContext()).load(imgUrl).diskCacheStrategy(DiskCacheStrategy.ALL).placeholder(R.color.dialogBac).transform(new CenterCrop(HuodeApplication.getContext()), new RoundCornerTransform(HuodeApplication.getContext(), 10)).into(imageView);
         }
     }
+
     /**
      * 设置应用界面亮度
      *
@@ -202,7 +210,7 @@ public class MultiUtils {
         return editText.getText().toString().trim().replace(" ", "");
     }
 
-    public static long getLong(String str){
+    public static long getLong(String str) {
         long num = 0l;
 
         try {
@@ -250,11 +258,11 @@ public class MultiUtils {
         return bitmap;
     }
 
-    public static String saveBitmapToLocal(Bitmap bitmap){
+    public static String saveBitmapToLocal(Bitmap bitmap) {
         String imgPath = createDownloadPath();
         String imgName = System.currentTimeMillis() + "uploadCover.jpg";
-        File imgFile = new File(imgPath,imgName);
-        if (imgFile.exists()){
+        File imgFile = new File(imgPath, imgName);
+        if (imgFile.exists()) {
             imgFile.delete();
         }
 
@@ -271,8 +279,8 @@ public class MultiUtils {
         }
         return "";
     }
-    
-    public static String byteToM(long num){
+
+    public static String byteToM(long num) {
         double m = (double) num / 1024 / 1024;
         return String.format("%.2f", m);
     }
@@ -368,8 +376,8 @@ public class MultiUtils {
             Object result = getVolumePathsMethod.invoke(sm);
 
             if (result != null && result instanceof String[]) {
-                String[] paths = (String[])result;
-                for (String path: paths) {
+                String[] paths = (String[]) result;
+                for (String path : paths) {
                     if (new File(path + pathTail).exists()) {
                         return path + pathTail;
                     }
@@ -447,7 +455,7 @@ public class MultiUtils {
         return path;
     }
 
-    public static int getNetWorkStatus(Context context){
+    public static int getNetWorkStatus(Context context) {
         int netWorkStatus = 1;
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
             ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -509,7 +517,7 @@ public class MultiUtils {
         return netWorkStatus;
     }
 
-    public static String millsecondsToStr(int seconds){
+    public static String millsecondsToStr(int seconds) {
         seconds = seconds / 1000;
         String result = "";
         int hour = 0, min = 0, second = 0;
@@ -534,4 +542,30 @@ public class MultiUtils {
         return result;
     }
 
+    public static void printLogInfo(String content) {
+        Log.i(LOG_TAG, content);
+    }
+
+    public static String getConnectWifiName(Context context) {
+        String ssid = null;
+        WifiManager wifiManager = (WifiManager) context.getApplicationContext().getSystemService(WIFI_SERVICE);
+        WifiInfo wifiInfo = null;
+        if (wifiManager != null) {
+            wifiInfo = wifiManager.getConnectionInfo();
+        }
+        if (wifiInfo != null) {
+            ssid = wifiInfo.getSSID();
+            int networkId = wifiInfo.getNetworkId();
+            List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
+            for (WifiConfiguration wifiConfiguration:configuredNetworks){
+                if (wifiConfiguration.networkId==networkId){
+                    ssid=wifiConfiguration.SSID;
+                    break;
+                }
+            }
+            return ssid;
+        } else {
+            return null;
+        }
+    }
 }

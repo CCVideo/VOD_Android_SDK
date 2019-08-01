@@ -55,6 +55,7 @@ public class MoreSettingsDialog extends Dialog {
 
         LinearLayout ll_play_audio = view.findViewById(R.id.ll_play_audio);
         LinearLayout ll_check_network = view.findViewById(R.id.ll_check_network);
+        LinearLayout ll_landscape_projection_screen = view.findViewById(R.id.ll_landscape_projection_screen);
         LinearLayout ll_download_video = view.findViewById(R.id.ll_download_video);
         LinearLayout ll_video_size = view.findViewById(R.id.ll_video_size);
         LinearLayout ll_subtitle = view.findViewById(R.id.ll_subtitle);
@@ -84,6 +85,14 @@ public class MoreSettingsDialog extends Dialog {
             iv_switch_play_mode.setImageResource(R.mipmap.iv_audio_mode_big);
             tv_play_mode.setText("音频播放");
         }
+
+        ll_landscape_projection_screen.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                moreSettings.landScapeProjection();
+                dismiss();
+            }
+        });
 
         ll_play_audio.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -267,7 +276,7 @@ public class MoreSettingsDialog extends Dialog {
         Window dialogWindow = getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         DisplayMetrics d = context.getResources().getDisplayMetrics();
-        lp.width = (int) (d.widthPixels * 0.35);
+        lp.width = (int) (d.widthPixels * 0.45);
         lp.height = (int) (d.heightPixels * 1.0);
         dialogWindow.setAttributes(lp);
         dialogWindow.setGravity(Gravity.RIGHT);

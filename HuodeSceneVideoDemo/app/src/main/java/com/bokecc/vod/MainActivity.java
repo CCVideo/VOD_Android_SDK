@@ -15,6 +15,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import com.bokecc.sdk.mobile.util.HttpUtil;
 import com.bokecc.vod.adapter.PlayVideoAdapter;
 import com.bokecc.vod.data.DataSet;
 import com.bokecc.vod.data.DataUtil;

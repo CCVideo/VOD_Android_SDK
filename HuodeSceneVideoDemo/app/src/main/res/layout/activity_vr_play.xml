@@ -180,6 +180,8 @@
                 android:visibility="gone" />
         </LinearLayout>
 
+
+
         <com.bokecc.vod.view.SubtitleView
             android:id="@+id/sv_subtitle"
             android:layout_width="match_parent"
@@ -202,7 +204,90 @@
                 android:layout_height="wrap_content"
                 android:src="@mipmap/iv_audio_playing" />
         </LinearLayout>
+        <!--投屏布局-->
+        <RelativeLayout
+            android:id="@+id/rl_projectioning"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/black"
+            android:visibility="gone">
 
+            <ImageView
+                android:layout_width="205dp"
+                android:layout_height="77dp"
+                android:layout_centerHorizontal="true"
+                android:src="@mipmap/iv_projection_bg" />
+
+            <TextView
+                android:id="@+id/tv_projection_state"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:textColor="@color/white"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:id="@+id/ll_projection_volume"
+                android:layout_width="35dp"
+                android:layout_height="82dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="10dp"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/iv_plus_volume"
+                    android:layout_width="35dp"
+                    android:layout_height="40dp"
+                    android:src="@mipmap/iv_plus_volume" />
+
+                <ImageView
+                    android:id="@+id/iv_minus_volume"
+                    android:layout_width="35dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="2dp"
+                    android:src="@mipmap/iv_minus_volume" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/ll_connect_projection_fail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="投屏连接失败"
+                    android:textColor="@color/white"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_marginTop="10dp"
+                    android:text="1、请确保手机与投屏设备连接在同一个WiFi下 \n2、请重新投屏或重启APP再次尝试"
+                    android:textColor="@color/white"
+                    android:textSize="13sp" />
+
+                <Button
+                    android:id="@+id/btn_close_projection"
+                    android:layout_width="115dp"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="15dp"
+                    android:text="关闭投屏"
+                    android:textColor="@color/orange"
+                    android:layout_gravity="center_horizontal"
+                    android:background="@drawable/orange_line_corner_bac"/>
+
+            </LinearLayout>
+
+        </RelativeLayout>
         <LinearLayout
             android:id="@+id/ll_ad"
             android:layout_width="match_parent"
@@ -444,12 +529,19 @@
                 android:textSize="18sp" />
 
             <ImageView
+                android:id="@+id/iv_portrait_projection"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_marginLeft="60dp"
+                android:src="@mipmap/iv_portrait_projection" />
+
+            <ImageView
                 android:id="@+id/iv_switch_to_audio"
                 android:layout_width="30dp"
                 android:layout_height="30dp"
-                android:layout_marginLeft="15dp"
+                android:layout_marginLeft="10dp"
                 android:layout_marginRight="15dp"
-                android:src="@mipmap/iv_audio_mode_big" />
+                android:src="@mipmap/iv_audio_mode" />
 
             <ImageView
                 android:id="@+id/iv_switch_mt"
@@ -613,6 +705,269 @@
             android:visibility="invisible" />
 
     </RelativeLayout>
+
+    <!--选择投屏设备布局-->
+    <LinearLayout
+        android:id="@+id/ll_select_projection_device"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/lightgray"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@color/white">
+
+            <ImageView
+                android:id="@+id/iv_projection_back"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="15dp"
+                android:src="@mipmap/iv_back_black" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="选择投屏设备"
+                android:textColor="@color/exeTitle"
+                android:textSize="15sp" />
+
+            <ImageView
+                android:id="@+id/iv_research"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:layout_alignParentRight="true"
+                android:layout_centerVertical="true"
+                android:layout_marginRight="15dp"
+                android:src="@mipmap/iv_research" />
+
+        </RelativeLayout>
+
+        <TextView
+            android:id="@+id/tv_current_wifi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="15dp"
+            android:textColor="@color/questionAnalysis"
+            android:textSize="14sp" />
+
+        <LinearLayout
+            android:id="@+id/ll_searching_device"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/white"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="15dp">
+
+            <ProgressBar
+                android:layout_width="15dp"
+                android:layout_height="15dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="5dp"
+                android:text="正在搜索可投屏设备..."
+                android:textColor="@color/exeTitle"
+                android:textSize="15sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_not_find_device"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/white"
+            android:orientation="vertical"
+            android:padding="15dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="当前网络下暂未找到可投屏设备"
+                android:textColor="@color/exeTitle"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="1、请确认设备是否是可投屏设备，如智能电视、智能盒子、电视果及其他投屏设备。如果无法确认，可咨询设备厂商。"
+                android:textColor="@color/questionAnalysis"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="2、请确保手机和设备连接在同一个Wi-Fi下。"
+                android:textColor="@color/questionAnalysis"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="3、重新启动APP，再次尝试投屏。"
+                android:textColor="@color/questionAnalysis"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <ListView
+            android:id="@+id/lv_device"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@color/white"
+            android:divider="@color/lightgray"
+            android:dividerHeight="1dp"
+            android:paddingLeft="15dp"
+            android:paddingRight="15dp">
+
+        </ListView>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/ll_projection_screen"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/lightgray"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:background="@color/white">
+
+            <ImageView
+                android:id="@+id/iv_projection_screen_back"
+                android:layout_width="25dp"
+                android:layout_height="25dp"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="15dp"
+                android:src="@mipmap/iv_back_black" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="提示"
+                android:textColor="@color/exeTitle"
+                android:textSize="15sp" />
+
+
+        </RelativeLayout>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/white"
+                android:orientation="vertical"
+                android:padding="15dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:text="加密视频不可直接投屏，请使用手机系统投屏功能"
+                    android:textColor="@color/exeTitle"
+                    android:textSize="15sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="15dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="操作步骤"
+                        android:textColor="@color/exeTitle"
+                        android:textSize="15sp"
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="(不同版本Android系统操作步骤存在差异)"
+                        android:textColor="@color/questionAnalysis"
+                        android:textSize="13sp" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="1、请先打开电视等投屏设备投屏开关"
+                    android:textColor="@color/questionAnalysis"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="2、打开手机设置，进入‘更多连接方式’"
+                    android:textColor="@color/questionAnalysis"
+                    android:textSize="13sp" />
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:src="@mipmap/iv_projection_screen_one"
+                    android:layout_marginTop="10dp"
+                    android:adjustViewBounds="true"
+                    />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="3、选择‘无线显示’"
+                    android:textColor="@color/questionAnalysis"
+                    android:textSize="13sp" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:src="@mipmap/iv_projection_screen_two"
+                    android:layout_marginTop="10dp"
+                    android:adjustViewBounds="true"
+                    />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="4、开启‘无线显示’开关，选择可投屏设备"
+                    android:textColor="@color/questionAnalysis"
+                    android:textSize="13sp" />
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:src="@mipmap/iv_projection_screen_three"
+                    android:layout_marginTop="10dp"
+                    android:adjustViewBounds="true"
+                    />
+            </LinearLayout>
+
+        </ScrollView>
+
+    </LinearLayout>
 
 
 </RelativeLayout>
