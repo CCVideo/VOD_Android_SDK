@@ -2,17 +2,14 @@ package com.bokecc.vod.upload;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
-import android.graphics.Path;
 import android.os.Bundle;
 import android.os.Environment;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.bokecc.sdk.mobile.upload.VideoInfo;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.R;
 import com.bokecc.vod.data.UploadInfo;
@@ -23,19 +20,18 @@ import com.bokecc.vod.view.CompressProgressDialog;
 import com.bokecc.vod.view.SelectCompressLevelDialog;
 
 import java.io.File;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 
 public class EditVideoInfoActivity extends Activity implements View.OnClickListener {
     private ImageView iv_back;
-    private String videoPath, compressOutputPath,videoTitle,uploadId,videoAbstract,videoCoverPath;
+    private String videoPath, compressOutputPath, videoTitle, uploadId, videoAbstract, videoCoverPath;
     private Activity activity;
-    private TextView tv_select_compress_level,tv_confirm_upload,tv_userid,tv_key;
-    private EditText et_video_title,et_video_abstract;
+    private TextView tv_select_compress_level, tv_confirm_upload, tv_userid, tv_key;
+    private EditText et_video_title, et_video_abstract;
     //0：不压缩 1：高质量压缩 2：中质量压缩 3：低质量压缩
     private int compressLecel = 0;
     private CompressProgressDialog compressProgressDialog;
+    private int wcorner = 3, woffsetx = 5, woffsety = 5, wfontfamily = 0, wfontsize = 12, wfontalpha = 100;
+    private String wfontcolor, wtext;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,7 +57,6 @@ public class EditVideoInfoActivity extends Activity implements View.OnClickListe
         iv_back.setOnClickListener(this);
         tv_select_compress_level.setOnClickListener(this);
         tv_confirm_upload.setOnClickListener(this);
-
         Bitmap videoThumbnail = MultiUtils.getVideoThumbnail(videoPath, MultiUtils.dipToPx(activity, 120), MultiUtils.dipToPx(activity, 67));
         videoCoverPath = MultiUtils.saveBitmapToLocal(videoThumbnail);
     }
@@ -113,7 +108,7 @@ public class EditVideoInfoActivity extends Activity implements View.OnClickListe
         videoAbstract = MultiUtils.getEditTextContent(et_video_abstract);
         if (compressLecel == 0) {
             uploadId = UploadInfo.UPLOAD_PRE.concat(System.currentTimeMillis() + "");
-            startUpload(uploadId,videoPath);
+            startUpload(uploadId, videoPath);
         } else if (compressLecel == 1) {
             createOutputPath();
             VideoCompress.compressVideoHigh(videoPath, compressOutputPath, new VideoCompress.CompressListener() {
@@ -125,14 +120,14 @@ public class EditVideoInfoActivity extends Activity implements View.OnClickListe
                 @Override
                 public void onSuccess() {
                     compressProgressDialog.dismiss();
-                    MultiUtils.showToast(activity,"压缩成功");
-                    startUpload(uploadId,compressOutputPath);
+                    MultiUtils.showToast(activity, "压缩成功");
+                    startUpload(uploadId, compressOutputPath);
                 }
 
                 @Override
                 public void onFail() {
                     compressProgressDialog.dismiss();
-                    MultiUtils.showToast(activity,"压缩失败，请重试");
+                    MultiUtils.showToast(activity, "压缩失败，请重试");
                 }
 
                 @Override
@@ -151,14 +146,14 @@ public class EditVideoInfoActivity extends Activity implements View.OnClickListe
                 @Override
                 public void onSuccess() {
                     compressProgressDialog.dismiss();
-                    MultiUtils.showToast(activity,"压缩成功");
-                    startUpload(uploadId,compressOutputPath);
+                    MultiUtils.showToast(activity, "压缩成功");
+                    startUpload(uploadId, compressOutputPath);
                 }
 
                 @Override
                 public void onFail() {
                     compressProgressDialog.dismiss();
-                    MultiUtils.showToast(activity,"压缩失败，请重试");
+                    MultiUtils.showToast(activity, "压缩失败，请重试");
                 }
 
                 @Override
@@ -177,14 +172,14 @@ public class EditVideoInfoActivity extends Activity implements View.OnClickListe
                 @Override
                 public void onSuccess() {
                     compressProgressDialog.dismiss();
-                    MultiUtils.showToast(activity,"压缩成功");
-                    startUpload(uploadId,compressOutputPath);
+                    MultiUtils.showToast(activity, "压缩成功");
+                    startUpload(uploadId, compressOutputPath);
                 }
 
                 @Override
                 public void onFail() {
                     compressProgressDialog.dismiss();
-                    MultiUtils.showToast(activity,"压缩失败，请重试");
+                    MultiUtils.showToast(activity, "压缩失败，请重试");
                 }
 
                 @Override
@@ -213,7 +208,6 @@ public class EditVideoInfoActivity extends Activity implements View.OnClickListe
     }
 
 
-
     private void startUpload(String uploadId, String videoPath) {
         UploadInfo newUploadInfo = new UploadInfo();
         newUploadInfo.setUploadId(uploadId);
@@ -221,6 +215,23 @@ public class EditVideoInfoActivity extends Activity implements View.OnClickListe
         newUploadInfo.setDesc(videoAbstract);
         newUploadInfo.setFilePath(videoPath);
         newUploadInfo.setVideoCoverPath(videoCoverPath);
+        //以下是水印配置
+        //水印位置0,左上 1右上 2左下 3右下，默认3，非必填
+        newUploadInfo.setCorner(wcorner);
+        //X轴偏移像素值，要求大于0，默认值5,超出视频大小按默认值，非必填
+        newUploadInfo.setOffsetx(woffsetx);
+        //Y轴偏移像素值，要求大于0，默认值5,超出视频大小按默认值，非必填
+        newUploadInfo.setOffsety(woffsety);
+        //字体类型：0,微软雅黑 1宋体 2黑体，默认0，非必填
+        newUploadInfo.setFontfamily(wfontfamily);
+        //字体大小，[0-100]，默认12
+        newUploadInfo.setFontsize(wfontsize);
+        //16进制字体颜色，如#FFFFFF，不能写#号，默认灰色D3D3D3，非必填
+        newUploadInfo.setFontcolor(wfontcolor);
+        //透明度，[0-100],默认0，100为不透明，非必填
+        newUploadInfo.setFontalpha(wfontalpha);
+        //水印文字内容, 1-50个字符，数字、字母、汉字，不填写则文字水印不生效，填写错误，会导致上传失败
+        newUploadInfo.setText(wtext);
         UploadController.insertUploadInfo(newUploadInfo);
         finish();
     }

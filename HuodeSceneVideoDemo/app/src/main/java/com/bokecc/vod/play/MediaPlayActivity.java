@@ -261,21 +261,33 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private ImageView iv_research, iv_plus_volume, iv_minus_volume, iv_portrait_projection, iv_projection_back,
             iv_projection_screen_back;
     private Button btn_close_projection;
-    private boolean isBindService = false,isProjectionContinue = true,isGetProjectionVolume = true;
-    private Integer volumeValue=0;
+    private boolean isBindService = false, isProjectionContinue = true, isGetProjectionVolume = true;
+    private Integer volumeValue = 0;
     private boolean isProjectioning = false, isProjectioningPause = false;
     private RelativeLayout rl_projectioning;
     private ProjectionTask projectionTask;
     private LinearLayout ll_select_projection_device, ll_searching_device, ll_not_find_device, ll_connect_projection_fail,
-            ll_projection_volume,ll_projection_screen;
+            ll_projection_volume, ll_projection_screen;
     private Timer projectionTimer, searchDeviceTimer;
     private SearchDeviceTask searchDeviceTask;
     private int SEARCH_DEVICE_TIME = 8;
-    //搜索发现投屏设备
+    //监听发现投屏设备
     private ProjectionBrowseRegistryListener registryListener = new ProjectionBrowseRegistryListener();
+    /**
+     * 连接设备状态: 播放状态
+     */
     public static final int PLAY_ACTION = 1;
+    /**
+     * 连接设备状态: 暂停状态
+     */
     public static final int PAUSE_ACTION = 2;
+    /**
+     * 连接设备状态: 停止状态
+     */
     public static final int STOP_ACTION = 3;
+    /**
+     * 投放失败
+     */
     public static final int ERROR_ACTION = 4;
     //投屏控制
     private ProjectionPlayControl projectionPlayControl = new ProjectionPlayControl();
@@ -597,6 +609,8 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         player.setOnDreamWinErrorListener(this);
         player.setOnErrorListener(this);
 
+//        开启防录屏，会使加密视频投屏功能不能正常使用
+//        player.setAntiRecordScreen(this);
         //设置CustomId
         player.setCustomId("HIHA2019");
 
@@ -1140,7 +1154,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 ll_connect_projection_fail.setVisibility(View.GONE);
                 stopProjection();
                 projectionIsOver();
-                if (isPrepared){
+                if (isPrepared) {
                     startVideoTimer();
                 }
                 break;
@@ -1414,7 +1428,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     iv_play_pause.setImageResource(R.mipmap.iv_pause);
                     isProjectioningPause = false;
                     tv_projection_state.setText("正在投屏播放中");
-                    if (currentPosition>0 && isProjectionContinue){
+                    if (currentPosition > 0 && isProjectionContinue) {
                         projectionPlayControl.seek((int) currentPosition, new ProjectionControlCallback() {
                             @Override
                             public void success(ProjectionIResponse response) {
@@ -1435,7 +1449,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     projectionPlayControl.setCurrentState(ProjectionDLANPlayState.PAUSE);
                     break;
                 case STOP_ACTION:
-                    if (isPrepared){
+                    if (isPrepared) {
                         startVideoTimer();
                     }
                     projectionIsOver();
@@ -1572,7 +1586,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         projectionPlayControl.getVolume(new ProjectionControlReceiveCallback() {
             @Override
             public void receive(ProjectionIResponse response) {
-                if (isGetProjectionVolume){
+                if (isGetProjectionVolume) {
                     ProjectionVolumeResponse projectionVolumeResponse = (ProjectionVolumeResponse) response;
                     volumeValue = projectionVolumeResponse.getResponse();
                     isGetProjectionVolume = false;
@@ -1607,6 +1621,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             }
         });
     }
+
     //下载文件
     private void downloadFile() {
         dowloadTitle = videoTitle;
@@ -2516,7 +2531,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                                 if (trackDurationSeconds > 0) {
                                     tv_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr((trackElapsedSeconds * 1000)));
                                     sb_progress.setProgress((int) trackElapsedSeconds, (int) trackDurationSeconds);
-                                    if (trackElapsedSeconds>=(trackDurationSeconds-2)){
+                                    if (trackElapsedSeconds >= (trackDurationSeconds - 2)) {
                                         mHandler.sendEmptyMessage(STOP_ACTION);
                                     }
                                 }
@@ -2579,6 +2594,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             }
         }
     }
+
     //展示课堂练习
     private void showExercise() {
         exeDialog = new ShowExeDialog(activity, new ExeOperation() {
@@ -2596,7 +2612,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
         });
         exeDialog.show();
-        if (isPlayVideo){
+        if (isPlayVideo) {
             playOrPauseVideo();
         }
     }

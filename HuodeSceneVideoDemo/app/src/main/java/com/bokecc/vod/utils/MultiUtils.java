@@ -56,7 +56,6 @@ import static android.content.Context.WIFI_SERVICE;
  */
 public class MultiUtils {
 
-    public static String LOG_TAG = "huode";
     private static String DOWNLOAD_CONTENT = "content://downloads/public_downloads";
 
     public static void showToast(Activity activity, final String content) {
@@ -542,9 +541,6 @@ public class MultiUtils {
         return result;
     }
 
-    public static void printLogInfo(String content) {
-        Log.i(LOG_TAG, content);
-    }
 
     public static String getConnectWifiName(Context context) {
         String ssid = null;

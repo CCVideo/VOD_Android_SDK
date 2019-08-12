@@ -49,6 +49,14 @@ public class UploadInfo {
     private String fileByteSize;
     private boolean isCrop;
     private int expectWidth;
+    private int corner = 3;
+    private int offsetx = 5;
+    private int offsety = 5;
+    private int fontfamily = 0;
+    private int fontsize = 12;
+    private String fontcolor;
+    private int fontalpha = 100;
+    private String text;
 
     public UploadInfo() {
 
@@ -265,5 +273,69 @@ public class UploadInfo {
 
     public void setVideoCoverPath(String videoCoverPath) {
         this.videoCoverPath = videoCoverPath;
+    }
+
+    public int getCorner() {
+        return corner;
+    }
+
+    public void setCorner(int corner) {
+        this.corner = corner;
+    }
+
+    public int getOffsetx() {
+        return offsetx;
+    }
+
+    public void setOffsetx(int offsetx) {
+        this.offsetx = offsetx;
+    }
+
+    public int getOffsety() {
+        return offsety;
+    }
+
+    public void setOffsety(int offsety) {
+        this.offsety = offsety;
+    }
+
+    public int getFontfamily() {
+        return fontfamily;
+    }
+
+    public void setFontfamily(int fontfamily) {
+        this.fontfamily = fontfamily;
+    }
+
+    public int getFontsize() {
+        return fontsize;
+    }
+
+    public void setFontsize(int fontsize) {
+        this.fontsize = fontsize;
+    }
+
+    public String getFontcolor() {
+        return fontcolor;
+    }
+
+    public void setFontcolor(String fontcolor) {
+        this.fontcolor = fontcolor;
+    }
+
+    public int getFontalpha() {
+        return fontalpha;
+    }
+
+    public void setFontalpha(int fontalpha) {
+        this.fontalpha = fontalpha;
+    }
+
+    public String getText() {
+        return text;
+    }
+
+    public void setText(String text) {
+        this.text = text;
     }
 }

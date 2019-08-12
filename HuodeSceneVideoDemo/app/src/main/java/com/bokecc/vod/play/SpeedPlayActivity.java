@@ -277,11 +277,23 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     private Timer projectionTimer, searchDeviceTimer;
     private SearchDeviceTask searchDeviceTask;
     private int SEARCH_DEVICE_TIME = 8;
-    //搜索发现投屏设备
+    //监听发现投屏设备
     private ProjectionBrowseRegistryListener registryListener = new ProjectionBrowseRegistryListener();
+    /**
+     * 连接设备状态: 播放状态
+     */
     public static final int PLAY_ACTION = 1;
+    /**
+     * 连接设备状态: 暂停状态
+     */
     public static final int PAUSE_ACTION = 2;
+    /**
+     * 连接设备状态: 停止状态
+     */
     public static final int STOP_ACTION = 3;
+    /**
+     * 投放失败
+     */
     public static final int ERROR_ACTION = 4;
     //投屏控制
     private ProjectionPlayControl projectionPlayControl = new ProjectionPlayControl();
@@ -601,6 +613,8 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         player.setOnCompletionListener(this);
         player.setOnDreamWinErrorListener(this);
         player.setOnErrorListener(this);
+        //开启防录屏，会使加密视频投屏功能不能正常使用
+//        player.setAntiRecordScreen(this);
         //设置CustomId
         player.setCustomId("HIHA2019");
         //获取字幕信息
@@ -1331,8 +1345,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             }
 
             getDeviceList();
-
-            // 投屏设备监听
+            // 搜索设备
             registryListener.setOnDeviceListChangedListener(new ProjectionDeviceListChangedListener() {
                 @Override
                 public void onDeviceAdded(final ProjectionIDevice device) {
@@ -1496,6 +1509,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         /**
          * 通过判断状态 来决定 是继续播放 还是重新播放
          */
+
         if (currentState == ProjectionDLANPlayState.STOP) {
             projectionPlayControl.playNew(playUrl, new ProjectionControlCallback() {
                 @Override

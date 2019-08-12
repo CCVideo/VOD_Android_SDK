@@ -11,6 +11,7 @@ import com.bokecc.sdk.mobile.upload.VideoInfo;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.data.DataSet;
 import com.bokecc.vod.data.UploadInfo;
+import com.bokecc.vod.utils.MultiUtils;
 
 /**
  * 上传Uploader包装类
@@ -45,6 +46,14 @@ public class UploadWrapper {
         videoInfo.setFileByteSize(uploadInfo.getFileByteSize());
         videoInfo.setCrop(uploadInfo.isCrop());
         videoInfo.setExpectWidth(uploadInfo.getExpectWidth());
+        videoInfo.setCorner(uploadInfo.getCorner());
+        videoInfo.setOffsetx(uploadInfo.getOffsetx());
+        videoInfo.setOffsety(uploadInfo.getOffsety());
+        videoInfo.setFontfamily(uploadInfo.getFontfamily());
+        videoInfo.setFontsize(uploadInfo.getFontsize());
+        videoInfo.setFontcolor(uploadInfo.getFontcolor());
+        videoInfo.setFontalpha(uploadInfo.getFontalpha());
+        videoInfo.setText(uploadInfo.getText());
 
         uploader = new Uploader(videoInfo, ConfigUtil.API_KEY);
         uploader.setUploadListener(new UploadListener() {
