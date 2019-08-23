@@ -32,18 +32,18 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     //获得场景视频SDK，必须引入
-    implementation 'com.bokecc:vod:3.3.0'
+    implementation 'com.bokecc:vod:3.3.3'
     //播放加密视频必须引用http和drmv6
-    implementation 'com.bokecc:http:1.1.0'
+    implementation 'com.bokecc:http:1.2.0'
     implementation 'com.bokecc:drmv6:2.19.0'
     //使用DWIjkMediaPlayer 倍速播放器引入
-    implementation 'com.bokecc:speedplay:2.19.0'
+    implementation 'com.bokecc:speedplay:2.19.3'
     //上传视频时使用压缩功能时需要引用
     implementation 'com.bokecc:compressvideo:1.0.0'
     //使用Vr播放功能时需要引入
     implementation 'com.bokecc:vrplay:1.0.0'
     //使用投屏功能需要引用
-    implementation 'com.bokecc:projection:1.6.0'
+    implementation 'com.bokecc:projection:1.7.0'
 
 
     implementation 'com.github.bumptech.glide:glide:3.7.0'

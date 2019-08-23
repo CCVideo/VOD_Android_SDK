@@ -1791,6 +1791,9 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     private void showOtherOperations() {
         ll_progress_and_fullscreen.setVisibility(View.VISIBLE);
         ll_title_and_audio.setVisibility(View.VISIBLE);
+        if (player.isPlaying()){
+            iv_play_pause.setImageResource(R.mipmap.iv_pause);
+        }
         if (isProjectioning) {
             ll_title_and_audio.setBackgroundColor(getResources().getColor(R.color.transparent));
             iv_switch_to_audio.setVisibility(View.INVISIBLE);
@@ -1826,6 +1829,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     player.stop();
                     player.reset();
                     HuodeApplication.getDRMServer().reset();
+                    player.setDefaultDefinition(definition);
                     player.setDefinition(activity, definition);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -1840,6 +1844,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         playInfo = player.getPlayInfo();
         if (playInfo != null) {
             playUrl = playInfo.getPlayUrl();
+            currentDefinition = playInfo.getDefaultDefinition();
         }
         isPrepared = true;
         //切换清晰度续播

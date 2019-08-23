@@ -55,7 +55,6 @@ import static android.content.Context.WIFI_SERVICE;
  *
  */
 public class MultiUtils {
-
     private static String DOWNLOAD_CONTENT = "content://downloads/public_downloads";
 
     public static void showToast(Activity activity, final String content) {

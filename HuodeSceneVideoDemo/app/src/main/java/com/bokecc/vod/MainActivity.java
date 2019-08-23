@@ -15,7 +15,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-import com.bokecc.sdk.mobile.util.HttpUtil;
 import com.bokecc.vod.adapter.PlayVideoAdapter;
 import com.bokecc.vod.data.DataSet;
 import com.bokecc.vod.data.DataUtil;
@@ -64,6 +63,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         MultiUtils.setStatusBarColor(this, R.color.transparent, true);
         initView();
+
         //初始化数据库和下载数据 没有开通授权播放和下载功能的账号 verificationCode可为空值
         verificationCode = MultiUtils.getVerificationCode();
         DownloadController.init(verificationCode);
@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         startService(uploadIntent);
 
         //请求数据
-        initData();
+      initData();
 
     }
 

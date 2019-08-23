@@ -260,6 +260,14 @@ public void scheduleVideoConvert(String path, String dest) {
         int rotationValue = Integer.valueOf(rotation);
         int originalWidth = Integer.valueOf(width);
         int originalHeight = Integer.valueOf(height);
+        int minValue = 0;
+        if (originalWidth == originalHeight) {
+            minValue = originalWidth;
+        } else if (originalWidth > originalHeight) {
+            minValue = originalHeight;
+        } else {
+            minValue = originalWidth;
+        }
 
         int resultWidth;
         int resultHeight;
@@ -267,19 +275,37 @@ public void scheduleVideoConvert(String path, String dest) {
         switch (quality) {
             default:
             case COMPRESS_QUALITY_HIGH:
-                resultWidth = originalWidth * 2 / 3;
-                resultHeight = originalHeight * 2 / 3;
-                bitrate = resultWidth * resultHeight * 6;
+                if (minValue > 720) {
+                    resultWidth = originalWidth * 2 / 3;
+                    resultHeight = originalHeight * 2 / 3;
+                    bitrate = resultWidth * resultHeight * 6;
+                } else {
+                    resultWidth = originalWidth;
+                    resultHeight = originalHeight;
+                    bitrate = resultWidth * resultHeight * 8 / 3;
+                }
                 break;
             case COMPRESS_QUALITY_MEDIUM:
-                resultWidth = originalWidth / 2;
-                resultHeight = originalHeight / 2;
-                bitrate = resultWidth * resultHeight * 10;
+                if (minValue > 720) {
+                    resultWidth = originalWidth * 2 / 3;
+                    resultHeight = originalHeight * 2 / 3;
+                    bitrate = resultWidth * resultHeight * 3;
+                } else {
+                    resultWidth = originalWidth;
+                    resultHeight = originalHeight;
+                    bitrate = resultWidth * resultHeight * 4 / 3;
+                }
                 break;
             case COMPRESS_QUALITY_LOW:
-                resultWidth = originalWidth / 2;
-                resultHeight = originalHeight / 2;
-                bitrate = (resultWidth/2) * (resultHeight/2) * 10;
+                if (minValue > 720) {
+                    resultWidth = originalWidth * 2 / 3;
+                    resultHeight = originalHeight * 2 / 3;
+                    bitrate = resultWidth * resultHeight;
+                } else {
+                    resultWidth = originalWidth;
+                    resultHeight = originalHeight;
+                    bitrate = resultWidth * resultHeight * 4 / 9;
+                }
                 break;
         }
 

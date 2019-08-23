@@ -34,7 +34,6 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.bokecc.projection.ProjectionBrowseRegistryListener;
 import com.bokecc.projection.ProjectionControlCallback;
@@ -70,7 +69,6 @@ import com.bokecc.sdk.mobile.play.OnVisitMsgListener;
 import com.bokecc.sdk.mobile.play.PlayInfo;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.HuodeApplication;
-import com.bokecc.vod.MainActivity;
 import com.bokecc.vod.R;
 import com.bokecc.vod.adapter.DeviceAdapter;
 import com.bokecc.vod.adapter.PlayListAdapter;
@@ -91,7 +89,6 @@ import com.bokecc.vod.inter.MoreSettings;
 import com.bokecc.vod.inter.SelectDefinition;
 import com.bokecc.vod.inter.SelectSpeed;
 import com.bokecc.vod.inter.SelectVideo;
-
 import com.bokecc.vod.utils.MultiUtils;
 import com.bokecc.vod.view.CheckNetworkDialog;
 import com.bokecc.vod.view.DoExerciseDialog;
@@ -131,7 +128,7 @@ import java.util.TimerTask;
 import java.util.TreeMap;
 
 import tv.danmaku.ijk.media.player.IMediaPlayer;
-import tv.danmaku.ijk.media.player.IjkMediaPlayer;
+
 
 public class SpeedPlayActivity extends Activity implements View.OnClickListener, TextureView.SurfaceTextureListener,
         DWIjkMediaPlayer.OnPreparedListener, DWIjkMediaPlayer.OnInfoListener, DWIjkMediaPlayer.OnBufferingUpdateListener,
@@ -614,7 +611,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         player.setOnDreamWinErrorListener(this);
         player.setOnErrorListener(this);
         //开启防录屏，会使加密视频投屏功能不能正常使用
-//        player.setAntiRecordScreen(this);
+        player.setAntiRecordScreen(this);
         //设置CustomId
         player.setCustomId("HIHA2019");
         //获取字幕信息
@@ -1769,6 +1766,9 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     private void showOtherOperations() {
         ll_progress_and_fullscreen.setVisibility(View.VISIBLE);
         ll_title_and_audio.setVisibility(View.VISIBLE);
+        if (player.isPlaying()){
+            iv_play_pause.setImageResource(R.mipmap.iv_pause);
+        }
         if (isProjectioning) {
             ll_title_and_audio.setBackgroundColor(getResources().getColor(R.color.transparent));
             iv_switch_to_audio.setVisibility(View.INVISIBLE);
@@ -1805,6 +1805,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                     player.reset();
                     player.setSurface(playSurface);
                     HuodeApplication.getDRMServer().reset();
+                    player.setDefaultDefinition(definition);
                     player.setDefinition(activity, definition);
                     player.setSpeed(currentSpeed);
                 } catch (IOException e) {
@@ -1848,6 +1849,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         playInfo = player.getPlayInfo();
         if (playInfo != null) {
             playUrl = playInfo.getPlayUrl();
+            currentDefinition = playInfo.getDefaultDefinition();
         }
         isPrepared = true;
         //切换清晰度续播
