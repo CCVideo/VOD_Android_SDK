@@ -55,6 +55,7 @@ import static android.content.Context.WIFI_SERVICE;
  *
  */
 public class MultiUtils {
+
     private static String DOWNLOAD_CONTENT = "content://downloads/public_downloads";
 
     public static void showToast(Activity activity, final String content) {
@@ -552,9 +553,9 @@ public class MultiUtils {
             ssid = wifiInfo.getSSID();
             int networkId = wifiInfo.getNetworkId();
             List<WifiConfiguration> configuredNetworks = wifiManager.getConfiguredNetworks();
-            for (WifiConfiguration wifiConfiguration:configuredNetworks){
-                if (wifiConfiguration.networkId==networkId){
-                    ssid=wifiConfiguration.SSID;
+            for (WifiConfiguration wifiConfiguration : configuredNetworks) {
+                if (wifiConfiguration.networkId == networkId) {
+                    ssid = wifiConfiguration.SSID;
                     break;
                 }
             }
@@ -562,5 +563,17 @@ public class MultiUtils {
         } else {
             return null;
         }
+    }
+
+    public static int getMaxValue(int x, int y, int z) {
+        int max = 0;
+        if (x > y && x > z) {
+            max = x;
+        } else if (y > x && y > z) {
+            max = y;
+        } else if (z > x && z > y) {
+            max = z;
+        }
+        return max;
     }
 }

@@ -1,5 +1,6 @@
 package com.bokecc.vod.play;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -12,6 +13,10 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.SurfaceTexture;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
@@ -24,6 +29,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.text.TextUtils;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
@@ -34,6 +41,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
@@ -130,7 +138,7 @@ import java.util.TreeMap;
 
 public class MediaPlayActivity extends Activity implements View.OnClickListener, TextureView.SurfaceTextureListener,
         DWMediaPlayer.OnPreparedListener, DWMediaPlayer.OnInfoListener, DWMediaPlayer.OnBufferingUpdateListener,
-        DWMediaPlayer.OnCompletionListener, DWMediaPlayer.OnErrorListener, OnDreamWinErrorListener {
+        DWMediaPlayer.OnCompletionListener, DWMediaPlayer.OnErrorListener, OnDreamWinErrorListener, SensorEventListener {
 
     private String videoId, videoTitle, videoCover;
     private TextView tv_video_title, tv_current_time, tv_video_time, tv_play_definition,
@@ -294,6 +302,24 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private Handler mHandler = new ProjectionHandler();
     private BroadcastReceiver mTransportStateBroadcastReceiver;
 
+    //重力感应旋转方向
+    private int mX, mY, mZ;
+    private long lastSensorTime = 0;
+    private SensorManager sensorManager;
+
+    //滑动调节进度和音量
+    private float downX, downY, upX, upY, xMove, yMove, absxMove, absyMove, lastX, lastY;
+    private AudioManager audioManager;
+    private int currentVolume, maxVolume;
+    private LinearLayout ll_volume;
+    private ProgressBar pb_volume;
+    private long slideProgress;
+    private TextView tv_slide_progress;
+
+    //首次加载失败启用备用线路
+    private boolean isBackupPlay = false;
+    private boolean isFirstBuffer = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -318,6 +344,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         registerReceiver(netReceiver, filter);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initView() {
         videoId = getIntent().getStringExtra("videoId");
         videoTitle = getIntent().getStringExtra("videoTitle");
@@ -404,6 +431,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         ll_projection_volume = findViewById(R.id.ll_projection_volume);
         ll_projection_screen = findViewById(R.id.ll_projection_screen);
 
+        ll_volume = findViewById(R.id.ll_volume);
+        pb_volume = findViewById(R.id.pb_volume);
+        tv_slide_progress = findViewById(R.id.tv_slide_progress);
 
         tv_video_title.setText(videoTitle);
         iv_back.setOnClickListener(this);
@@ -555,6 +585,101 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             }
         });
 
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+        currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        pb_volume.setMax(maxVolume);
+        pb_volume.setProgress(currentVolume);
+        //滑动调节
+        rl_play_video.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                int action = event.getAction();
+                switch (action) {
+                    case MotionEvent.ACTION_DOWN:
+                        downX = event.getX();
+                        downY = event.getY();
+                        lastX = downX;
+                        lastY = downY;
+                        slideProgress = currentPosition;
+                        break;
+
+                    case MotionEvent.ACTION_MOVE:
+                        float x = event.getX();
+                        float y = event.getY();
+
+                        float xMoveVolume = x - lastX;
+                        float yMoveVolume = y - lastY;
+                        float absxMoveVolume = Math.abs(xMoveVolume);
+                        float absyMoveVolume = Math.abs(yMoveVolume);
+
+                        if (absyMoveVolume > absxMoveVolume && absyMoveVolume > 70 && !isLock) {
+                            lastX = x;
+                            lastY = y;
+                            currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                            //调节音量
+                            int changeVolume = (int) (absyMoveVolume / 70);
+                            if (yMoveVolume > 0) {
+                                currentVolume = currentVolume - changeVolume;
+                            } else {
+                                currentVolume = currentVolume + changeVolume;
+                            }
+                            if (currentVolume < 0) {
+                                currentVolume = 0;
+                            }
+
+                            if (currentVolume > maxVolume) {
+                                currentVolume = maxVolume;
+                            }
+                            ll_volume.setVisibility(View.VISIBLE);
+                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0);
+                            pb_volume.setProgress(currentVolume);
+                        } else if (absxMoveVolume > absyMoveVolume && absxMoveVolume > 50 && !isLock) {
+                            lastX = x;
+                            lastY = y;
+                            int screenWidth = MultiUtils.getScreenWidth(activity);
+                            long changeProgress = (long) (absxMoveVolume * videoDuration / screenWidth);
+
+                            if (xMoveVolume > 0) {
+                                //往右滑
+                                slideProgress = slideProgress + changeProgress;
+                            } else {
+                                //往左滑
+                                slideProgress = slideProgress - changeProgress;
+                            }
+                            if (slideProgress > videoDuration) {
+                                slideProgress = videoDuration;
+                            }
+                            if (slideProgress < 0) {
+                                slideProgress = 0;
+                            }
+                            String videoTime = MultiUtils.millsecondsToMinuteSecondStr(videoDuration);
+                            String currentTime = MultiUtils.millsecondsToMinuteSecondStr(slideProgress);
+                            tv_slide_progress.setVisibility(View.VISIBLE);
+                            tv_slide_progress.setText(currentTime + "/" + videoTime);
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                        upX = event.getX();
+                        upY = event.getY();
+
+                        xMove = upX - downX;
+                        yMove = upY - downY;
+                        absxMove = Math.abs(xMove);
+                        absyMove = Math.abs(yMove);
+
+                        if (absxMove >= absyMove && absxMove > 50 && !isLock) {
+                            //调节进度
+                            tv_slide_progress.setVisibility(View.GONE);
+                            player.seekTo((int) slideProgress);
+                        }
+                        break;
+                }
+                return false;
+            }
+        });
+
         verificationCode = MultiUtils.getVerificationCode();
         //获取当前亮度
         currentBrightness = MultiUtils.getSystemBrightness(activity);
@@ -582,6 +707,11 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 playProjection();
             }
         });
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
+        }
 
     }
 
@@ -980,11 +1110,6 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         isShowVisitorInfoDialog = false;
     }
 
-    private void showOnlineOperation() {
-        iv_next_video.setVisibility(View.VISIBLE);
-        tv_play_definition.setVisibility(View.VISIBLE);
-        tv_video_select.setVisibility(View.VISIBLE);
-    }
 
     private void hideOnlineOperation() {
         iv_next_video.setVisibility(View.GONE);
@@ -1752,7 +1877,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private void showOtherOperations() {
         ll_progress_and_fullscreen.setVisibility(View.VISIBLE);
         ll_title_and_audio.setVisibility(View.VISIBLE);
-        if (player.isPlaying()){
+        if (player.isPlaying()) {
             iv_play_pause.setImageResource(R.mipmap.iv_pause);
         }
         if (isProjectioning) {
@@ -1773,6 +1898,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private void hideOtherOperations() {
         ll_progress_and_fullscreen.setVisibility(View.INVISIBLE);
         ll_title_and_audio.setVisibility(View.INVISIBLE);
+        ll_volume.setVisibility(View.GONE);
     }
 
     //切换清晰度
@@ -1786,8 +1912,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     switchDefPos = player.getCurrentPosition();
                     ll_load_video.setVisibility(View.VISIBLE);
                     hideOtherOperations();
-                    player.pause();
-                    player.stop();
+
                     player.reset();
                     player.setSurface(playSurface);
                     HuodeApplication.getDRMServer().reset();
@@ -1837,6 +1962,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             currentDefinition = playInfo.getDefaultDefinition();
         }
         isPrepared = true;
+        isFirstBuffer = false;
         //切换清晰度续播
         if (switchDefPos > 0) {
             player.seekTo((int) switchDefPos);
@@ -1969,9 +2095,12 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (what == -38) {
+
+                if (!isBackupPlay && !isLocalPlay && isFirstBuffer) {
+                    startBackupPlay();
                     return;
                 }
+
                 netWorkStatus = MultiUtils.getNetWorkStatus(activity);
                 if (netWorkStatus == 0) {
                     isNoNetPause = true;
@@ -2111,6 +2240,21 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         }
     }
 
+    private void startBackupPlay() {
+        player.setBackupPlay(true);
+        isBackupPlay = true;
+        player.reset();
+        try {
+            if (playSurface != null) {
+                player.setSurface(playSurface);
+            }
+            player.prepareAsync();
+        } catch (Exception e) {
+
+        }
+
+    }
+
     private void showIsUseMobileNetwork() {
         if (isLocalPlay) {
             return;
@@ -2129,13 +2273,11 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 if (tv_error_info.getVisibility() == View.VISIBLE) {
                     hidePlayErrorView();
                 }
-                if (isNoNetPause) {
-                    isPlayVideo = true;
-                    iv_play_pause.setImageResource(R.mipmap.iv_pause);
-                    playVideoOrAudio(isAudioMode, false);
-                } else {
-                    playOrPauseVideo();
-                }
+                isPlayVideo = true;
+                iv_play_pause.setImageResource(R.mipmap.iv_pause);
+                playVideoOrAudio(isAudioMode, false);
+                ll_load_video.setVisibility(View.GONE);
+
             }
         });
         if (!isUseMobileNetworkDialog.isShowing()) {
@@ -2232,6 +2374,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         isVideoShowVisitorInfoDialog = false;
 
         sv_subtitle.resetSubtitle();
+        //重置播放线路相关
+        player.setBackupPlay(false);
+        isFirstBuffer = true;
+        isBackupPlay = false;
     }
 
     /**
@@ -2284,7 +2430,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         player.reset();
         player.setVideoPlayInfo(videoId, ConfigUtil.USERID, ConfigUtil.API_KEY, verificationCode, activity);
         player.setSurface(playSurface);
-        HuodeApplication.getDRMServer().reset();
+        HuodeApplication.getDRMServer().resetLocalPlay();
         player.setAudioPlay(isAudioMode);
         player.prepareAsync();
 
@@ -3009,6 +3155,8 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             stopProjection();
         }
 
+        sensorManager.unregisterListener(this);
+
     }
 
     //返回事件监听
@@ -3066,6 +3214,53 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             }
             stopProjection();
         }
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor == null) {
+            return;
+        }
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            int x = (int) event.values[0];
+            int y = (int) event.values[1];
+            int z = (int) event.values[2];
+
+            long sensorTime = System.currentTimeMillis();
+
+            int absX = Math.abs(mX - x);
+            int absY = Math.abs(mY - y);
+            int absZ = Math.abs(mZ - z);
+
+            int maxvalue = MultiUtils.getMaxValue(absX, absY, absZ);
+            if (maxvalue > 2 && (sensorTime - lastSensorTime) > 1000) {
+                lastSensorTime = sensorTime;
+                if (isFullScreen) {
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                }
+            }
+            mX = x;
+            mY = y;
+            mZ = z;
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN
+                || event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
+
+           if (ll_volume.getVisibility()==View.VISIBLE){
+               ll_volume.setVisibility(View.GONE);
+           }
+        }
+        return super.dispatchKeyEvent(event);
     }
 
 

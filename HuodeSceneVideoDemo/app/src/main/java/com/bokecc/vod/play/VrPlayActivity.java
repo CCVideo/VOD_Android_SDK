@@ -1,5 +1,6 @@
 package com.bokecc.vod.play;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -11,6 +12,10 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.ConnectivityManager;
@@ -24,6 +29,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.text.TextUtils;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -129,7 +135,7 @@ import java.util.TreeMap;
 
 public class VrPlayActivity extends Activity implements View.OnClickListener,
         DWMediaPlayer.OnPreparedListener, DWMediaPlayer.OnInfoListener, DWMediaPlayer.OnBufferingUpdateListener,
-        DWMediaPlayer.OnCompletionListener, DWMediaPlayer.OnErrorListener, DWMediaPlayer.OnVideoSizeChangedListener, OnDreamWinErrorListener {
+        DWMediaPlayer.OnCompletionListener, DWMediaPlayer.OnErrorListener, DWMediaPlayer.OnVideoSizeChangedListener, OnDreamWinErrorListener ,SensorEventListener {
 
     private String videoId, videoTitle, videoCover;
     private TextView tv_video_title, tv_current_time, tv_video_time, tv_play_definition,
@@ -242,8 +248,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     private GLSurfaceView gsv_video;
     //是否是vr视频
     private boolean isVr = false;
-    private AudioManager audioManager;
-    private int maxVolume, currentVolume;
     private CircleProgressBar leftCircleView, rightCircleView;
     private ProgressBar leftBufferProgressBar, rightBufferProgressBar;
     //投屏
@@ -288,6 +292,18 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     private Handler mHandler = new ProjectionHandler();
     private BroadcastReceiver mTransportStateBroadcastReceiver;
 
+    //重力感应旋转方向
+    private int mX, mY, mZ;
+    private long lastSensorTime = 0;
+    private SensorManager sensorManager;
+
+    private AudioManager audioManager;
+    private int currentVolume, maxVolume;
+
+    //首次加载失败启用备用线路
+    private boolean isBackupPlay = false;
+    private boolean isFirstBuffer = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -312,6 +328,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         registerReceiver(netReceiver, filter);
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initView() {
         videoId = getIntent().getStringExtra("videoId");
         videoTitle = getIntent().getStringExtra("videoTitle");
@@ -366,9 +383,11 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         iv_switch_sd = findViewById(R.id.iv_switch_sd);
         //vr
         gsv_video = findViewById(R.id.gsv_video);
+
         audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
         currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+
         leftCircleView = findViewById(R.id.left_circle_view);
         leftCircleView.setMax(VrConfig.EYE_CIRCLE_BAR_MAX_TIME);
         rightCircleView = findViewById(R.id.right_circle_view);
@@ -550,6 +569,11 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 playProjection();
             }
         });
+
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager != null) {
+            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
+        }
 
     }
 
@@ -1458,6 +1482,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
     };
 
+
     private final class ProjectionHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
@@ -1847,6 +1872,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             currentDefinition = playInfo.getDefaultDefinition();
         }
         isPrepared = true;
+        isFirstBuffer = false;
         //切换清晰度续播
         if (switchDefPos > 0) {
             player.seekTo((int) switchDefPos);
@@ -1999,6 +2025,12 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 if (what == -38) {
                     return;
                 }
+
+                if (!isBackupPlay && !isLocalPlay && isFirstBuffer) {
+                    startBackupPlay();
+                    return;
+                }
+
                 netWorkStatus = MultiUtils.getNetWorkStatus(activity);
                 if (netWorkStatus == 0) {
                     isNoNetPause = true;
@@ -2143,6 +2175,18 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
     }
 
+    private void startBackupPlay() {
+        player.setBackupPlay(true);
+        isBackupPlay = true;
+        player.reset();
+        try {
+            player.prepareAsync();
+        } catch (Exception e) {
+
+        }
+
+    }
+
     private void showIsUseMobileNetwork() {
         if (isLocalPlay) {
             return;
@@ -2161,13 +2205,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 if (tv_error_info.getVisibility() == View.VISIBLE) {
                     hidePlayErrorView();
                 }
-                if (isNoNetPause) {
-                    isPlayVideo = true;
-                    iv_play_pause.setImageResource(R.mipmap.iv_pause);
-                    playVideoOrAudio(isAudioMode, false);
-                } else {
-                    playOrPauseVideo();
-                }
+                isPlayVideo = true;
+                iv_play_pause.setImageResource(R.mipmap.iv_pause);
+                playVideoOrAudio(isAudioMode, false);
+                ll_load_video.setVisibility(View.GONE);
             }
         });
         if (!isUseMobileNetworkDialog.isShowing()) {
@@ -2264,6 +2305,11 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         isVideoShowVisitorInfoDialog = false;
 
         sv_subtitle.resetSubtitle();
+
+        //重置播放线路相关
+        player.setBackupPlay(false);
+        isFirstBuffer = true;
+        isBackupPlay = false;
     }
 
     /**
@@ -2315,7 +2361,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         player.stop();
         player.reset();
         player.setVideoPlayInfo(videoId, ConfigUtil.USERID, ConfigUtil.API_KEY, verificationCode, activity);
-        HuodeApplication.getDRMServer().reset();
+        HuodeApplication.getDRMServer().resetLocalPlay();
         player.setAudioPlay(isAudioMode);
         player.prepareAsync();
 
@@ -3016,6 +3062,8 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
 
         vrController.onDestroy();
+
+        sensorManager.unregisterListener(this);
     }
 
     //返回事件监听
@@ -3069,6 +3117,41 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             }
             stopProjection();
         }
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor == null) {
+            return;
+        }
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            int x = (int) event.values[0];
+            int y = (int) event.values[1];
+            int z = (int) event.values[2];
+
+            long sensorTime = System.currentTimeMillis();
+
+            int absX = Math.abs(mX - x);
+            int absY = Math.abs(mY - y);
+            int absZ = Math.abs(mZ - z);
+
+            int maxvalue = MultiUtils.getMaxValue(absX,absY,absZ);
+            if (maxvalue > 2 && (sensorTime - lastSensorTime) > 1000) {
+                lastSensorTime = sensorTime;
+                if (isFullScreen){
+                    setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+                }
+            }
+            mX = x;
+            mY = y;
+            mZ = z;
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 
 

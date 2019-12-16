@@ -198,11 +198,11 @@
                     android:id="@+id/btn_close_projection"
                     android:layout_width="115dp"
                     android:layout_height="40dp"
-                    android:layout_marginTop="15dp"
-                    android:text="关闭投屏"
-                    android:textColor="@color/orange"
                     android:layout_gravity="center_horizontal"
-                    android:background="@drawable/orange_line_corner_bac"/>
+                    android:layout_marginTop="15dp"
+                    android:background="@drawable/orange_line_corner_bac"
+                    android:text="关闭投屏"
+                    android:textColor="@color/orange" />
 
             </LinearLayout>
 
@@ -304,8 +304,8 @@
             android:id="@+id/rl_pause_ad"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:visibility="gone"
-            android:layout_centerInParent="true">
+            android:layout_centerInParent="true"
+            android:visibility="gone">
 
             <ImageView
                 android:id="@+id/iv_pause_ad"
@@ -316,14 +316,13 @@
                 android:id="@+id/tv_close_pause_ad"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@android:color/black"
-                android:textSize="18sp"
-                android:text="关闭"
-                android:paddingLeft="10dp"
-                android:paddingRight="10dp"
                 android:layout_alignParentRight="true"
                 android:background="@color/white"
-                />
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
+                android:text="关闭"
+                android:textColor="@android:color/black"
+                android:textSize="18sp" />
 
 
         </RelativeLayout>
@@ -334,16 +333,16 @@
             android:layout_height="wrap_content"
             android:layout_above="@+id/ll_progress_and_fullscreen"
             android:layout_alignParentBottom="true"
-            android:layout_marginBottom="50dp"
             android:layout_marginLeft="15dp"
+            android:layout_marginBottom="50dp"
             android:background="@drawable/watch_tip_bg"
-            android:paddingBottom="5dp"
             android:paddingLeft="10dp"
-            android:paddingRight="10dp"
             android:paddingTop="5dp"
+            android:paddingRight="10dp"
+            android:paddingBottom="5dp"
             android:textColor="@color/white"
             android:textSize="15sp"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/ll_pre_watch_over"
@@ -368,8 +367,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="30dp"
                 android:gravity="center"
-                android:orientation="horizontal"
-                >
+                android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="20dp"
@@ -629,15 +627,14 @@
             android:visibility="gone" />
 
 
-
         <LinearLayout
             android:id="@+id/ll_show_gif"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_centerInParent="true"
+            android:background="@color/dialogBac"
             android:gravity="center"
             android:orientation="vertical"
-            android:background="@color/dialogBac"
             android:visibility="gone">
 
             <ImageView
@@ -708,6 +705,54 @@
             android:text="取消"
             android:textColor="@android:color/white"
             android:textSize="15sp"
+            android:visibility="gone" />
+
+        <LinearLayout
+            android:id="@+id/ll_volume"
+            android:layout_width="150dp"
+            android:layout_height="30dp"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="50dp"
+            android:background="@drawable/volume_set_bac"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="音量"
+                android:textColor="@color/white"
+                android:textSize="18sp" />
+
+            <ProgressBar
+                android:id="@+id/pb_volume"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_marginLeft="5dp"
+                android:layout_weight="1"
+                android:indeterminate="false"
+                android:maxHeight="4dp"
+                android:minHeight="4dp"
+                android:progressDrawable="@drawable/seekbar_horizontal" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_slide_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="50dp"
+            android:background="@drawable/volume_set_bac"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:textColor="@color/orange"
+            android:textSize="18sp"
+            android:textStyle="bold"
             android:visibility="gone" />
 
     </RelativeLayout>
@@ -895,9 +940,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
+                    android:layout_marginTop="15dp"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="15dp">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -906,7 +951,8 @@
                         android:text="操作步骤"
                         android:textColor="@color/exeTitle"
                         android:textSize="15sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -931,13 +977,14 @@
                     android:text="2、打开手机设置，进入‘更多连接方式’"
                     android:textColor="@color/questionAnalysis"
                     android:textSize="13sp" />
+
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@mipmap/iv_projection_screen_one"
                     android:layout_marginTop="10dp"
                     android:adjustViewBounds="true"
-                    />
+                    android:src="@mipmap/iv_projection_screen_one" />
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -949,10 +996,9 @@
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@mipmap/iv_projection_screen_two"
                     android:layout_marginTop="10dp"
                     android:adjustViewBounds="true"
-                    />
+                    android:src="@mipmap/iv_projection_screen_two" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -965,10 +1011,9 @@
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@mipmap/iv_projection_screen_three"
                     android:layout_marginTop="10dp"
                     android:adjustViewBounds="true"
-                    />
+                    android:src="@mipmap/iv_projection_screen_three" />
             </LinearLayout>
 
         </ScrollView>
