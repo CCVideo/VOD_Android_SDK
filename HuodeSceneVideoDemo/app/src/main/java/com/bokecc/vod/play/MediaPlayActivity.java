@@ -739,7 +739,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         player.setOnDreamWinErrorListener(this);
         player.setOnErrorListener(this);
 
-//        开启防录屏，会使加密视频投屏功能不能正常使用
+//      开启防录屏，会使加密视频投屏功能不能正常使用
 //        player.setAntiRecordScreen(this);
         //设置CustomId
         player.setCustomId("HIHA2019");
@@ -2096,6 +2096,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             @Override
             public void run() {
 
+                if (what == -38) {
+                    return;
+                }
+
                 if (!isBackupPlay && !isLocalPlay && isFirstBuffer) {
                     startBackupPlay();
                     return;
@@ -3256,9 +3260,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN
                 || event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
 
-           if (ll_volume.getVisibility()==View.VISIBLE){
-               ll_volume.setVisibility(View.GONE);
-           }
+            if (ll_volume.getVisibility() == View.VISIBLE) {
+                ll_volume.setVisibility(View.GONE);
+            }
         }
         return super.dispatchKeyEvent(event);
     }

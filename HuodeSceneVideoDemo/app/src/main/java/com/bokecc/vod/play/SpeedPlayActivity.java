@@ -746,7 +746,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         player.setOnDreamWinErrorListener(this);
         player.setOnErrorListener(this);
         //开启防录屏，会使加密视频投屏功能不能正常使用
-        player.setAntiRecordScreen(this);
+//        player.setAntiRecordScreen(this);
         //设置CustomId
         player.setCustomId("HIHA2019");
         //获取字幕信息
@@ -1937,8 +1937,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                     switchDefPos = player.getCurrentPosition();
                     ll_load_video.setVisibility(View.VISIBLE);
                     hideOtherOperations();
-                    player.pause();
-                    player.stop();
                     player.reset();
                     player.setSurface(playSurface);
                     HuodeApplication.getDRMServer().reset();

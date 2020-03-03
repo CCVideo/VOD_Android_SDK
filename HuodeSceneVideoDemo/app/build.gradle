@@ -32,7 +32,7 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     //获得场景视频SDK，必须引入
-    implementation 'com.bokecc:vod:3.4.0'
+    implementation 'com.bokecc:vod:3.4.1'
     //播放加密视频必须引用http和drmv6
     implementation 'com.bokecc:http:1.2.0'
     implementation 'com.bokecc:drmv6:2.19.0'

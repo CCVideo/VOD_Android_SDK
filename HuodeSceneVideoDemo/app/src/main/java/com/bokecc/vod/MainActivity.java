@@ -83,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
 
         //请求数据
       initData();
-
     }
 
     private void initView() {
