@@ -68,6 +68,8 @@ import com.bokecc.sdk.mobile.ad.FrontADInfo;
 import com.bokecc.sdk.mobile.ad.PauseADInfo;
 import com.bokecc.sdk.mobile.exception.HuodeException;
 import com.bokecc.sdk.mobile.play.DWMediaPlayer;
+import com.bokecc.sdk.mobile.play.MarqueeAction;
+import com.bokecc.sdk.mobile.play.MarqueeView;
 import com.bokecc.sdk.mobile.play.MediaMode;
 import com.bokecc.sdk.mobile.play.OnAuthMsgListener;
 import com.bokecc.sdk.mobile.play.OnDreamWinErrorListener;
@@ -98,7 +100,6 @@ import com.bokecc.vod.inter.IsUseMobieNetwork;
 import com.bokecc.vod.inter.MoreSettings;
 import com.bokecc.vod.inter.SelectDefinition;
 import com.bokecc.vod.inter.SelectVideo;
-
 import com.bokecc.vod.utils.MultiUtils;
 import com.bokecc.vod.view.CheckNetworkDialog;
 import com.bokecc.vod.view.DoExerciseDialog;
@@ -320,6 +321,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private boolean isBackupPlay = false;
     private boolean isFirstBuffer = true;
 
+    //跑马灯
+    private MarqueeView mv_video;
+    private List<MarqueeAction> marqueeActions;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -434,6 +439,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         ll_volume = findViewById(R.id.ll_volume);
         pb_volume = findViewById(R.id.pb_volume);
         tv_slide_progress = findViewById(R.id.tv_slide_progress);
+        mv_video = findViewById(R.id.mv_video);
 
         tv_video_title.setText(videoTitle);
         iv_back.setOnClickListener(this);
@@ -544,6 +550,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     playIndex = position;
                     resetInfo();
                     playVideoOrAudio(isAudioMode, true);
+                    player.resetPlayedAndPausedTime();
                 }
 
             }
@@ -713,6 +720,33 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
         }
 
+        //跑马灯
+        marqueeActions = new ArrayList<>();
+        MarqueeAction marqueeAction0 = new MarqueeAction();
+        marqueeAction0.setIndex(0);
+        marqueeAction0.setDuration(5000);
+        marqueeAction0.setStartXpos(0.1f);
+        marqueeAction0.setStartYpos(0.2f);
+        marqueeAction0.setEndXpos(0.8f);
+        marqueeAction0.setEndYpos(0.5f);
+        marqueeAction0.setStartAlpha(1.0f);
+        marqueeAction0.setEndAlpha(1.0f);
+        marqueeActions.add(marqueeAction0);
+
+        MarqueeAction marqueeAction1 = new MarqueeAction();
+        marqueeAction1.setIndex(1);
+        marqueeAction1.setDuration(3000);
+        marqueeAction1.setStartXpos(0.8f);
+        marqueeAction1.setStartYpos(0.2f);
+        marqueeAction1.setEndXpos(0.1f);
+        marqueeAction1.setEndYpos(0.8f);
+        marqueeAction1.setStartAlpha(1.0f);
+        marqueeAction1.setEndAlpha(1.0f);
+        marqueeActions.add(marqueeAction1);
+        mv_video.setMarqueeActions(marqueeActions);
+        mv_video.setType(MarqueeView.TEXT);
+        mv_video.setTextColor("#ffffff");
+        mv_video.setTextFontSize(20);
     }
 
     private void getLastVideoPostion() {
@@ -739,7 +773,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         player.setOnDreamWinErrorListener(this);
         player.setOnErrorListener(this);
 
-//      开启防录屏，会使加密视频投屏功能不能正常使用
+//        开启防录屏，会使加密视频投屏功能不能正常使用
 //        player.setAntiRecordScreen(this);
         //设置CustomId
         player.setCustomId("HIHA2019");
@@ -2055,6 +2089,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         if (hotSpotDatas != null && hotSpotDatas.size() > 0) {
             sb_progress.setHotSpotPosition(hotSpotDatas, videoDuration / 1000);
         }
+
+        //运行跑马灯
+        mv_video.setTextContent("跑马灯");
+        mv_video.start();
     }
 
     @Override
@@ -2095,11 +2133,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-
                 if (what == -38) {
                     return;
                 }
-
                 if (!isBackupPlay && !isLocalPlay && isFirstBuffer) {
                     startBackupPlay();
                     return;
@@ -2334,6 +2370,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
     //播放下一个视频
     private void playNextVideo() {
+        player.resetPlayedAndPausedTime();
         resetInfo();
         playIndex = playIndex + 1;
         if (playIndex >= videoIds.size()) {

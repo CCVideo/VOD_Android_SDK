@@ -67,6 +67,8 @@ import com.bokecc.sdk.mobile.ad.FrontADInfo;
 import com.bokecc.sdk.mobile.ad.PauseADInfo;
 import com.bokecc.sdk.mobile.exception.HuodeException;
 import com.bokecc.sdk.mobile.play.DWIjkMediaPlayer;
+import com.bokecc.sdk.mobile.play.MarqueeAction;
+import com.bokecc.sdk.mobile.play.MarqueeView;
 import com.bokecc.sdk.mobile.play.MediaMode;
 import com.bokecc.sdk.mobile.play.OnAuthMsgListener;
 import com.bokecc.sdk.mobile.play.OnDreamWinErrorListener;
@@ -129,7 +131,6 @@ import org.json.JSONException;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -325,6 +326,11 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     private boolean isBackupPlay = false;
     private boolean isFirstBuffer = true;
 
+    //跑马灯
+    private MarqueeView mv_video;
+    private List<MarqueeAction> marqueeActions;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -431,6 +437,8 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         ll_volume = findViewById(R.id.ll_volume);
         pb_volume = findViewById(R.id.pb_volume);
         tv_slide_progress = findViewById(R.id.tv_slide_progress);
+
+        mv_video = findViewById(R.id.mv_video);
 
         tv_video_title.setText(videoTitle);
         iv_back.setOnClickListener(this);
@@ -550,6 +558,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                     playIndex = position;
                     resetInfo();
                     playVideoOrAudio(isAudioMode, true);
+                    player.resetPlayedAndPausedTime();
                 }
 
             }
@@ -639,7 +648,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                             ll_volume.setVisibility(View.VISIBLE);
                             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0);
                             pb_volume.setProgress(currentVolume);
-                        }else if (absxMoveVolume > absyMoveVolume && absxMoveVolume > 50 && !isLock) {
+                        } else if (absxMoveVolume > absyMoveVolume && absxMoveVolume > 50 && !isLock) {
                             lastX = x;
                             lastY = y;
                             int screenWidth = MultiUtils.getScreenWidth(activity);
@@ -720,6 +729,34 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         if (sensorManager != null) {
             sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
         }
+
+        //跑马灯
+        marqueeActions = new ArrayList<>();
+        MarqueeAction marqueeAction0 = new MarqueeAction();
+        marqueeAction0.setIndex(0);
+        marqueeAction0.setDuration(5000);
+        marqueeAction0.setStartXpos(0.1f);
+        marqueeAction0.setStartYpos(0.2f);
+        marqueeAction0.setEndXpos(0.8f);
+        marqueeAction0.setEndYpos(0.5f);
+        marqueeAction0.setStartAlpha(1.0f);
+        marqueeAction0.setEndAlpha(1.0f);
+        marqueeActions.add(marqueeAction0);
+
+        MarqueeAction marqueeAction1 = new MarqueeAction();
+        marqueeAction1.setIndex(1);
+        marqueeAction1.setDuration(3000);
+        marqueeAction1.setStartXpos(0.8f);
+        marqueeAction1.setStartYpos(0.2f);
+        marqueeAction1.setEndXpos(0.1f);
+        marqueeAction1.setEndYpos(0.8f);
+        marqueeAction1.setStartAlpha(1.0f);
+        marqueeAction1.setEndAlpha(1.0f);
+        marqueeActions.add(marqueeAction1);
+        mv_video.setMarqueeActions(marqueeActions);
+        mv_video.setType(MarqueeView.TEXT);
+        mv_video.setTextColor("#ffffff");
+        mv_video.setTextFontSize(20);
     }
 
     private void getLastVideoPostion() {
@@ -1981,6 +2018,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
 
     @Override
     public void onPrepared(IMediaPlayer iMediaPlayer) {
+
         playInfo = player.getPlayInfo();
         if (playInfo != null) {
             playUrl = playInfo.getPlayUrl();
@@ -2078,6 +2116,10 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         if (hotSpotDatas != null && hotSpotDatas.size() > 0) {
             sb_progress.setHotSpotPosition(hotSpotDatas, videoDuration / 1000);
         }
+
+        //运行跑马灯
+        mv_video.setTextContent("跑马灯");
+        mv_video.start();
     }
 
     @Override
@@ -2357,6 +2399,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
 
     //播放下一个视频
     private void playNextVideo() {
+        player.resetPlayedAndPausedTime();
         resetInfo();
         playIndex = playIndex + 1;
         if (playIndex >= videoIds.size()) {
@@ -2608,7 +2651,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             videoTask.cancel();
         }
     }
-
 
     // 播放进度计时器
     class VideoTask extends TimerTask {
@@ -3288,7 +3330,7 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN
                 || event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
 
-            if (ll_volume.getVisibility()==View.VISIBLE){
+            if (ll_volume.getVisibility() == View.VISIBLE) {
                 ll_volume.setVisibility(View.GONE);
             }
         }

@@ -100,6 +100,11 @@
             android:layout_height="match_parent"
             android:layout_centerInParent="true" />
 
+        <com.bokecc.sdk.mobile.play.MarqueeView
+            android:id="@+id/mv_video"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
         <com.bokecc.vod.view.SubtitleView
             android:id="@+id/sv_subtitle"
             android:layout_width="match_parent"
@@ -208,6 +213,7 @@
             </LinearLayout>
 
         </RelativeLayout>
+
 
         <LinearLayout
             android:id="@+id/ll_ad"
@@ -722,12 +728,12 @@
             android:layout_height="30dp"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="50dp"
+            android:background="@drawable/volume_set_bac"
             android:gravity="center"
             android:orientation="horizontal"
-            android:visibility="gone"
             android:paddingLeft="5dp"
             android:paddingRight="5dp"
-            android:background="@drawable/volume_set_bac">
+            android:visibility="gone">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -738,16 +744,15 @@
 
             <ProgressBar
                 android:id="@+id/pb_volume"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                 android:layout_width="0dp"
                 android:layout_height="4dp"
+                android:layout_marginLeft="5dp"
                 android:layout_weight="1"
+                android:indeterminate="false"
                 android:maxHeight="4dp"
                 android:minHeight="4dp"
-                android:layout_marginLeft="5dp"
-                android:progressDrawable="@drawable/seekbar_horizontal"
-                android:indeterminate="false"
-                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                />
+                android:progressDrawable="@drawable/seekbar_horizontal" />
 
         </LinearLayout>
 
@@ -950,9 +955,9 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
+                    android:layout_marginTop="15dp"
                     android:gravity="center_vertical"
-                    android:layout_marginTop="15dp">
+                    android:orientation="horizontal">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -961,7 +966,8 @@
                         android:text="操作步骤"
                         android:textColor="@color/exeTitle"
                         android:textSize="15sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold" />
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -986,13 +992,14 @@
                     android:text="2、打开手机设置，进入‘更多连接方式’"
                     android:textColor="@color/questionAnalysis"
                     android:textSize="13sp" />
+
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@mipmap/iv_projection_screen_one"
                     android:layout_marginTop="10dp"
                     android:adjustViewBounds="true"
-                    />
+                    android:src="@mipmap/iv_projection_screen_one" />
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -1004,10 +1011,9 @@
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@mipmap/iv_projection_screen_two"
                     android:layout_marginTop="10dp"
                     android:adjustViewBounds="true"
-                    />
+                    android:src="@mipmap/iv_projection_screen_two" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -1020,10 +1026,9 @@
                 <ImageView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:src="@mipmap/iv_projection_screen_three"
                     android:layout_marginTop="10dp"
                     android:adjustViewBounds="true"
-                    />
+                    android:src="@mipmap/iv_projection_screen_three" />
             </LinearLayout>
 
         </ScrollView>

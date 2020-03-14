@@ -32,7 +32,6 @@
             android:name=".play.SpeedPlayActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:screenOrientation="portrait" />
-
         <activity
             android:name=".play.MediaPlayActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"
