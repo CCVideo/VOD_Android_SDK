@@ -66,6 +66,7 @@ import com.bokecc.sdk.mobile.ad.FrontADInfo;
 import com.bokecc.sdk.mobile.ad.PauseADInfo;
 import com.bokecc.sdk.mobile.exception.HuodeException;
 import com.bokecc.sdk.mobile.play.DWMediaPlayer;
+import com.bokecc.sdk.mobile.play.MarqueeInfo;
 import com.bokecc.sdk.mobile.play.MediaMode;
 import com.bokecc.sdk.mobile.play.OnAuthMsgListener;
 import com.bokecc.sdk.mobile.play.OnDreamWinErrorListener;
@@ -758,7 +759,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         //设置鉴权监听器
         player.setOnAuthMsgListener(new OnAuthMsgListener() {
             @Override
-            public void onAuthMsg(final int enable, final int freetime, final String messaage) {
+            public void onAuthMsg(final int enable, final int freetime, final String messaage, final MarqueeInfo marqueeInfo) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {

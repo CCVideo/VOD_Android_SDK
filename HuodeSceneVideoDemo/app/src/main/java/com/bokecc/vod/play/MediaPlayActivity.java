@@ -69,6 +69,7 @@ import com.bokecc.sdk.mobile.ad.PauseADInfo;
 import com.bokecc.sdk.mobile.exception.HuodeException;
 import com.bokecc.sdk.mobile.play.DWMediaPlayer;
 import com.bokecc.sdk.mobile.play.MarqueeAction;
+import com.bokecc.sdk.mobile.play.MarqueeInfo;
 import com.bokecc.sdk.mobile.play.MarqueeView;
 import com.bokecc.sdk.mobile.play.MediaMode;
 import com.bokecc.sdk.mobile.play.OnAuthMsgListener;
@@ -323,7 +324,6 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
     //跑马灯
     private MarqueeView mv_video;
-    private List<MarqueeAction> marqueeActions;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -720,33 +720,6 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
         }
 
-        //跑马灯
-        marqueeActions = new ArrayList<>();
-        MarqueeAction marqueeAction0 = new MarqueeAction();
-        marqueeAction0.setIndex(0);
-        marqueeAction0.setDuration(5000);
-        marqueeAction0.setStartXpos(0.1f);
-        marqueeAction0.setStartYpos(0.2f);
-        marqueeAction0.setEndXpos(0.8f);
-        marqueeAction0.setEndYpos(0.5f);
-        marqueeAction0.setStartAlpha(1.0f);
-        marqueeAction0.setEndAlpha(1.0f);
-        marqueeActions.add(marqueeAction0);
-
-        MarqueeAction marqueeAction1 = new MarqueeAction();
-        marqueeAction1.setIndex(1);
-        marqueeAction1.setDuration(3000);
-        marqueeAction1.setStartXpos(0.8f);
-        marqueeAction1.setStartYpos(0.2f);
-        marqueeAction1.setEndXpos(0.1f);
-        marqueeAction1.setEndYpos(0.8f);
-        marqueeAction1.setStartAlpha(1.0f);
-        marqueeAction1.setEndAlpha(1.0f);
-        marqueeActions.add(marqueeAction1);
-        mv_video.setMarqueeActions(marqueeActions);
-        mv_video.setType(MarqueeView.TEXT);
-        mv_video.setTextColor("#ffffff");
-        mv_video.setTextFontSize(20);
     }
 
     private void getLastVideoPostion() {
@@ -846,8 +819,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
         //设置鉴权监听器
         player.setOnAuthMsgListener(new OnAuthMsgListener() {
+
             @Override
-            public void onAuthMsg(final int enable, final int freetime, final String messaage) {
+            public void onAuthMsg(final int enable, final int freetime, final String messaage, final MarqueeInfo marqueeInfo) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -863,6 +837,42 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                             tv_watch_tip.setText("可试看" + minute + "分钟" + second + "秒，购买会员查看完整版");
                         }
                         tv_pre_watch_over.setText(freeWatchOverMsg);
+
+                        //设置跑马灯
+                        if (marqueeInfo != null) {
+                            String type = marqueeInfo.getType();
+                            int loop = marqueeInfo.getLoop();
+                            ArrayList<MarqueeAction> action = marqueeInfo.getAction();
+                            mv_video.setLoop(loop);
+                            mv_video.setMarqueeActions(action);
+                            MarqueeInfo.TextBean textBean = marqueeInfo.getTextBean();
+                            MarqueeInfo.ImageBean imageBean = marqueeInfo.getImageBean();
+                            if (!TextUtils.isEmpty(type) && type.equals("text")) {
+                                mv_video.setType(MarqueeView.TEXT);
+                                if (textBean != null) {
+                                    String content = textBean.getContent();
+                                    if (!TextUtils.isEmpty(content)) {
+                                        mv_video.setTextContent(content);
+                                    }
+                                    int font_size = textBean.getFont_size();
+                                    mv_video.setTextFontSize(font_size);
+                                    String color = textBean.getColor();
+                                    if (!TextUtils.isEmpty(color) && color.length() == 8) {
+                                        String textColor = "#" + color.substring(2, 8);
+                                        if (textColor.length() == 7) {
+                                            //textColor：文字颜色，格式如：#ffffff
+                                            mv_video.setTextColor(textColor);
+                                        }
+                                    }
+                                }
+                            } else if (!TextUtils.isEmpty(type) && type.equals("image")) {
+                                mv_video.setType(MarqueeView.IMAGE);
+                                if (imageBean != null) {
+                                    mv_video.setMarqueeImage(activity, imageBean.getImage_url(), imageBean.getWidth(), imageBean.getHeight());
+                                }
+                            }
+                        }
+
                     }
                 });
             }
@@ -2091,7 +2101,6 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         }
 
         //运行跑马灯
-        mv_video.setTextContent("跑马灯");
         mv_video.start();
     }
 
