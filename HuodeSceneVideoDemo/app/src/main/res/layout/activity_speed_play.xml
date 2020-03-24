@@ -756,6 +756,40 @@
 
         </LinearLayout>
 
+        <LinearLayout
+            android:id="@+id/ll_brightness"
+            android:layout_width="150dp"
+            android:layout_height="30dp"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="50dp"
+            android:background="@drawable/volume_set_bac"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingLeft="5dp"
+            android:paddingRight="5dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="亮度"
+                android:textColor="@color/white"
+                android:textSize="18sp" />
+
+            <ProgressBar
+                android:id="@+id/pb_brightness"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:layout_width="0dp"
+                android:layout_height="4dp"
+                android:layout_marginLeft="5dp"
+                android:layout_weight="1"
+                android:indeterminate="false"
+                android:maxHeight="4dp"
+                android:minHeight="4dp"
+                android:progressDrawable="@drawable/seekbar_horizontal" />
+
+        </LinearLayout>
+
         <TextView
             android:id="@+id/tv_slide_progress"
             android:layout_width="wrap_content"

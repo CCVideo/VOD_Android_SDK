@@ -35,6 +35,7 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
@@ -309,12 +310,16 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private long lastSensorTime = 0;
     private SensorManager sensorManager;
 
-    //滑动调节进度和音量
+    //滑动调节进度亮度和音量
     private float downX, downY, upX, upY, xMove, yMove, absxMove, absyMove, lastX, lastY;
     private AudioManager audioManager;
     private int currentVolume, maxVolume;
+    private int maxBrightness = 100, halfWidth = 0, controlChange = 70;
+    private boolean isChangeBrightness = false;
     private LinearLayout ll_volume;
     private ProgressBar pb_volume;
+    private LinearLayout ll_brightness;
+    private ProgressBar pb_brightness;
     private long slideProgress;
     private TextView tv_slide_progress;
 
@@ -437,7 +442,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         ll_projection_screen = findViewById(R.id.ll_projection_screen);
 
         ll_volume = findViewById(R.id.ll_volume);
+        ll_brightness = findViewById(R.id.ll_brightness);
         pb_volume = findViewById(R.id.pb_volume);
+        pb_brightness = findViewById(R.id.pb_brightness);
         tv_slide_progress = findViewById(R.id.tv_slide_progress);
         mv_video = findViewById(R.id.mv_video);
 
@@ -597,6 +604,11 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
         pb_volume.setMax(maxVolume);
         pb_volume.setProgress(currentVolume);
+
+        //获取当前亮度
+        currentBrightness = MultiUtils.getSystemBrightness(activity);
+        pb_brightness.setMax(maxBrightness);
+        pb_brightness.setProgress(currentBrightness);
         //滑动调节
         rl_play_video.setOnTouchListener(new View.OnTouchListener() {
             @Override
@@ -609,6 +621,15 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                         lastX = downX;
                         lastY = downY;
                         slideProgress = currentPosition;
+                        halfWidth = MultiUtils.getScreenWidth(activity) / 2;
+                        if (downX > halfWidth) {
+                            isChangeBrightness = false;
+                            controlChange = 70;
+                        } else {
+                            isChangeBrightness = true;
+                            controlChange = 15;
+                        }
+
                         break;
 
                     case MotionEvent.ACTION_MOVE:
@@ -620,27 +641,50 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                         float absxMoveVolume = Math.abs(xMoveVolume);
                         float absyMoveVolume = Math.abs(yMoveVolume);
 
-                        if (absyMoveVolume > absxMoveVolume && absyMoveVolume > 70 && !isLock) {
+                        if (absyMoveVolume > absxMoveVolume && absyMoveVolume > controlChange && !isLock) {
                             lastX = x;
                             lastY = y;
-                            currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-                            //调节音量
-                            int changeVolume = (int) (absyMoveVolume / 70);
-                            if (yMoveVolume > 0) {
-                                currentVolume = currentVolume - changeVolume;
+                            if (isChangeBrightness) {
+                                //调节亮度
+                                int changeBrightness = (int) (absyMoveVolume / controlChange);
+                                if (yMoveVolume > 0) {
+                                    currentBrightness = currentBrightness - changeBrightness;
+                                } else {
+                                    currentBrightness = currentBrightness + changeBrightness;
+                                }
+                                if (currentBrightness < 0) {
+                                    currentBrightness = 0;
+                                }
+
+                                if (currentBrightness > maxBrightness) {
+                                    currentBrightness = maxBrightness;
+                                }
+                                ll_brightness.setVisibility(View.VISIBLE);
+                                ll_volume.setVisibility(View.GONE);
+                                changeBrightness(activity, currentBrightness);
+                                pb_brightness.setProgress(currentBrightness);
                             } else {
-                                currentVolume = currentVolume + changeVolume;
-                            }
-                            if (currentVolume < 0) {
-                                currentVolume = 0;
+                                currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+                                //调节音量
+                                int changeVolume = (int) (absyMoveVolume / controlChange);
+                                if (yMoveVolume > 0) {
+                                    currentVolume = currentVolume - changeVolume;
+                                } else {
+                                    currentVolume = currentVolume + changeVolume;
+                                }
+                                if (currentVolume < 0) {
+                                    currentVolume = 0;
+                                }
+
+                                if (currentVolume > maxVolume) {
+                                    currentVolume = maxVolume;
+                                }
+                                ll_volume.setVisibility(View.VISIBLE);
+                                ll_brightness.setVisibility(View.GONE);
+                                audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0);
+                                pb_volume.setProgress(currentVolume);
                             }
 
-                            if (currentVolume > maxVolume) {
-                                currentVolume = maxVolume;
-                            }
-                            ll_volume.setVisibility(View.VISIBLE);
-                            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0);
-                            pb_volume.setProgress(currentVolume);
                         } else if (absxMoveVolume > absyMoveVolume && absxMoveVolume > 50 && !isLock) {
                             lastX = x;
                             lastY = y;
@@ -688,8 +732,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         });
 
         verificationCode = MultiUtils.getVerificationCode();
-        //获取当前亮度
-        currentBrightness = MultiUtils.getSystemBrightness(activity);
+
         //获取上次播放的位置
         videoPositionDBHelper = new VideoPositionDBHelper(ObjectBox.get());
         getLastVideoPostion();
@@ -720,6 +763,16 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
         }
 
+    }
+
+    /**
+     * brightnessValue 取值范围0-100
+     */
+    private void changeBrightness(Activity context, int brightnessValue) {
+        Window localWindow = context.getWindow();
+        WindowManager.LayoutParams localLayoutParams = localWindow.getAttributes();
+        localLayoutParams.screenBrightness = brightnessValue / 100.0F;
+        localWindow.setAttributes(localLayoutParams);
     }
 
     private void getLastVideoPostion() {
@@ -1943,6 +1996,8 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         ll_progress_and_fullscreen.setVisibility(View.INVISIBLE);
         ll_title_and_audio.setVisibility(View.INVISIBLE);
         ll_volume.setVisibility(View.GONE);
+        ll_brightness.setVisibility(View.GONE);
+        tv_slide_progress.setVisibility(View.GONE);
     }
 
     //切换清晰度
