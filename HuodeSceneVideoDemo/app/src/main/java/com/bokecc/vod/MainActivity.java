@@ -3,6 +3,7 @@ package com.bokecc.vod;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -163,6 +164,7 @@ public class MainActivity extends AppCompatActivity {
         SelectPlayerDialog selectPlayerDialog = new SelectPlayerDialog(MainActivity.this, new SelectPlayer() {
             @Override
             public void selectDWIjkMediaPlayer() {
+                closeSmallWindow();
                 Intent playIntent = new Intent(MainActivity.this, SpeedPlayActivity.class);
                 playIntent.putExtra("videoId", item.getVideoId());
                 playIntent.putExtra("videoTitle", item.getVideoTitle());
@@ -173,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void selectDWMediaPlayer() {
+                closeSmallWindow();
                 Intent playIntent = new Intent(MainActivity.this, MediaPlayActivity.class);
                 playIntent.putExtra("videoId", item.getVideoId());
                 playIntent.putExtra("videoTitle", item.getVideoTitle());
@@ -280,5 +283,17 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         DataSet.saveDownloadData();
         DataSet.saveUploadData();
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        closeSmallWindow();
+    }
+
+    private void closeSmallWindow() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            sendBroadcast(new Intent("com.bokecc.vod.play.SMALL_WINDOW").putExtra("control",3));
+        }
     }
 }

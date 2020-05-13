@@ -325,20 +325,74 @@ mv_video.setOnMarqueeImgFailListener(new OnMarqueeImgFailListener() {
      */
 mv_video.setMarqueeImage(bitmap, imageWidth, imageHeight);
 </pre><p>运行跑马灯。</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n98" mdtype="fences">mv_video.start();
-</pre><h2><a name='header-n99' class='md-header-anchor '></a>4.19 错误处理</h2><p>错误信息有两种，一种是播放器触发的错误，另一种是获得场景视频自定义的错误。</p><h3><a name='header-n101' class='md-header-anchor '></a>4.19.1 监听播放器的错误事件</h3><p>DWMediaPlayer重载了MediaPlayer的setOnErrorListener()方法，如果需要在应用中提示错误信息，可调用此方法设置OnErrorListener。具体实现方式如下:</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n103" mdtype="fences">player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+</pre><h2><a name='header-n100' class='md-header-anchor '></a>4.19 小窗播放</h2><p>Android 8.0及以上系统支持小窗播放,具体使用请参考Demo。</p><p>在AndroidManifest.xml文件中给播放Activity配置android:supportsPictureInPicture=&quot;true&quot;和android:configChanges=&quot;screenLayout|orientation&quot;（避免Activity销毁重建）。</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n103" mdtype="fences">&lt;activity
+    android:name=".play.MediaPlayActivity"
+    android:configChanges="orientation|keyboardHidden|screenSize|screenLayout"
+    android:screenOrientation="portrait"
+    android:supportsPictureInPicture="true" /&gt;
+</pre><p>进入小窗播放，以下是部分代码示例,详细代码参考Demo：</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n105" mdtype="fences" style="break-inside: unset;">private PictureInPictureParams.Builder builder;
+
+private void useSmallWindowPlay() {
+        if (Build.VERSION.SDK_INT &gt;= Build.VERSION_CODES.O) {
+            if (builder == null) {
+                builder = new PictureInPictureParams.Builder();
+            }
+            int width = rl_play_video.getWidth();
+            int height = rl_play_video.getHeight();
+            // 设置宽高比例值
+            if (width &gt; 0 &amp;&amp; height &gt; 0) {
+                float whRate = MultiUtils.calFloat(2, width, height);
+                if (whRate &gt; 0.42 &amp;&amp; whRate &lt; 2.39) {
+                    Rational aspectRatio = new Rational(width, height);
+                    builder.setAspectRatio(aspectRatio);
+                }
+            }
+
+            if (actions != null &amp;&amp; actions.size() &gt; 0) {
+                actions.clear();
+            }
+
+            if (player.isPlaying()) {
+                actions.add(pauseRemoteAction);
+            } else {
+                actions.add(playRemoteAction);
+            }
+            if (actions != null &amp;&amp; actions.size() &gt; 0) {
+                builder.setActions(actions);
+            }
+
+            // 进入小窗模式
+            enterPictureInPictureMode(builder.build());
+        }
+
+}
+</pre><h2><a name='header-n106' class='md-header-anchor '></a>4.20 视频截图</h2><p>通过调用player.getVideoScreenShot(bitmap, videoScreenShotOutPath)获取当前播放视频的截图。</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n108" mdtype="fences">private void getVideoScreenShot() {
+        String videoScreenShotOutPath = MultiUtils.getVideoScreenShotOutPath();
+        if (!TextUtils.isEmpty(videoScreenShotOutPath)) {
+            Bitmap bitmap = tv_video.getBitmap();
+            //bitmap:视频画面的bitmap  videoScreenShotOutPath：截图输出路径
+            boolean videoScreenShot = player.getVideoScreenShot(bitmap, videoScreenShotOutPath);
+            if (videoScreenShot) {
+                //通知系统相册更新
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                        Uri.fromFile(new File(videoScreenShotOutPath))));
+            }
+        }
+}
+</pre><h2><a name='header-n109' class='md-header-anchor '></a>4.21 错误处理</h2><p>错误信息有两种，一种是播放器触发的错误，另一种是获得场景视频自定义的错误。</p><h3><a name='header-n111' class='md-header-anchor '></a>4.21.1 监听播放器的错误事件</h3><p>DWMediaPlayer重载了MediaPlayer的setOnErrorListener()方法，如果需要在应用中提示错误信息，可调用此方法设置OnErrorListener。具体实现方式如下:</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n113" mdtype="fences">player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         //在这里进行错误处理
         return true;
     }
 });
-</pre><h3><a name='header-n104' class='md-header-anchor '></a>4.19.2 监听获得场景视频自定义的错误事件</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n105" mdtype="fences">player.setOnDreamWinErrorListener(new OnDreamWinErrorListener() {
+</pre><h3><a name='header-n114' class='md-header-anchor '></a>4.21.2 监听获得场景视频自定义的错误事件</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n115" mdtype="fences">player.setOnDreamWinErrorListener(new OnDreamWinErrorListener() {
     @Override
     public void onPlayError(HuodeException e) {
         //在这里进行错误处理
     }
 });
-</pre><h2><a name='header-n107' class='md-header-anchor '></a>4.20 错误码</h2><h3><a name='header-n108' class='md-header-anchor '></a>4.20.1 HuodeException自定义的错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n109" mdtype="fences" style="break-inside: unset;">101:无播放节点 
+</pre><h2><a name='header-n117' class='md-header-anchor '></a>4.22 错误码</h2><h3><a name='header-n118' class='md-header-anchor '></a>4.22.1 HuodeException自定义的错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n119" mdtype="fences" style="break-inside: unset;">101:无播放节点 
 102:视频无播放节点 
 103:音频无播放节点 
 104：授权验证失败
@@ -406,7 +460,7 @@ mv_video.setMarqueeImage(bitmap, imageWidth, imageHeight);
 503：DRM加密版本错误
 504：源文件不存在
 505：加载数据失败
-</pre><h3><a name='header-n110' class='md-header-anchor '></a>4.20.2 ijkplayer错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n111" mdtype="fences" style="break-inside: unset;">int MEDIA_INFO_UNKNOWN = 1;//未知信息
+</pre><h3><a name='header-n120' class='md-header-anchor '></a>4.22.2 ijkplayer错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n121" mdtype="fences" style="break-inside: unset;">int MEDIA_INFO_UNKNOWN = 1;//未知信息
 int MEDIA_INFO_STARTED_AS_NEXT = 2;//播放下一条
 int MEDIA_INFO_VIDEO_RENDERING_START = 3;//视频开始整备中，准备渲染
 int MEDIA_INFO_VIDEO_TRACK_LAGGING = 700;//视频日志跟踪

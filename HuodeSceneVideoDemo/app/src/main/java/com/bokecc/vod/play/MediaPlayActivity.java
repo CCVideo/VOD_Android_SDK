@@ -2,6 +2,9 @@ package com.bokecc.vod.play;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.PendingIntent;
+import android.app.PictureInPictureParams;
+import android.app.RemoteAction;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,23 +15,28 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
+import android.graphics.drawable.Icon;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.session.MediaSession;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.text.TextUtils;
+import android.util.Rational;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.Surface;
@@ -83,6 +91,7 @@ import com.bokecc.sdk.mobile.play.OnVisitMsgListener;
 import com.bokecc.sdk.mobile.play.PlayInfo;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.HuodeApplication;
+import com.bokecc.vod.MainActivity;
 import com.bokecc.vod.R;
 import com.bokecc.vod.adapter.DeviceAdapter;
 import com.bokecc.vod.adapter.PlayListAdapter;
@@ -330,6 +339,17 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     //跑马灯
     private MarqueeView mv_video;
 
+    private final int SMALL_WINDOW_PLAY_OR_PAUSE = 5;
+    private ImageView iv_small_window_play;
+    private SmallWindowReceiver smallWindowReceiver;
+    private final String smallWindowAction = "com.bokecc.vod.play.SMALL_WINDOW";
+    private ArrayList<RemoteAction> actions;
+    private RemoteAction pauseRemoteAction, playRemoteAction;
+    private boolean isSmallWindow = false;
+    private PictureInPictureParams.Builder builder;
+
+    private ImageView iv_landscape_screenshot, iv_portrait_screenshot;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -447,6 +467,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         pb_brightness = findViewById(R.id.pb_brightness);
         tv_slide_progress = findViewById(R.id.tv_slide_progress);
         mv_video = findViewById(R.id.mv_video);
+        iv_small_window_play = findViewById(R.id.iv_small_window_play);
+
+        iv_landscape_screenshot = findViewById(R.id.iv_landscape_screenshot);
+        iv_portrait_screenshot = findViewById(R.id.iv_portrait_screenshot);
 
         tv_video_title.setText(videoTitle);
         iv_back.setOnClickListener(this);
@@ -471,7 +495,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         iv_pause_ad.setOnClickListener(this);
         tv_close_pause_ad.setOnClickListener(this);
         ll_rewatch.setOnClickListener(this);
+        iv_small_window_play.setOnClickListener(this);
         tv_video.setSurfaceTextureListener(this);
+        iv_landscape_screenshot.setOnClickListener(this);
+        iv_portrait_screenshot.setOnClickListener(this);
         //本地播放音频
         if (!TextUtils.isEmpty(format) && format.equals(".mp3")) {
             isAudioMode = true;
@@ -582,11 +609,14 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 }
                 if (isProjectioning) {
                     iv_lock_or_unlock.setVisibility(View.GONE);
+                    iv_portrait_screenshot.setVisibility(View.GONE);
                     iv_create_gif.setVisibility(View.GONE);
+                    iv_landscape_screenshot.setVisibility(View.GONE);
                 } else {
                     if (isFullScreen) {
                         iv_lock_or_unlock.setVisibility(View.VISIBLE);
                         iv_create_gif.setVisibility(View.VISIBLE);
+                        iv_landscape_screenshot.setVisibility(View.VISIBLE);
                     }
                 }
                 if (isLock) {
@@ -761,6 +791,31 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         if (sensorManager != null) {
             sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_UI);
+        }
+
+        //小窗播放
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            iv_small_window_play.setVisibility(View.VISIBLE);
+            actions = new ArrayList<>();
+            Icon icon = Icon.createWithResource(activity, R.mipmap.iv_small_window_pause);
+            PendingIntent pauseIntent = PendingIntent.getBroadcast(activity,
+                    SMALL_WINDOW_PLAY_OR_PAUSE,
+                    new Intent(smallWindowAction).putExtra("control", 1),
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+
+            pauseRemoteAction = new RemoteAction(icon, "", "", pauseIntent);
+
+
+            Icon iconPlay = Icon.createWithResource(activity, R.mipmap.iv_small_window_play);
+            PendingIntent playIntent = PendingIntent.getBroadcast(activity,
+                    SMALL_WINDOW_PLAY_OR_PAUSE,
+                    new Intent(smallWindowAction).putExtra("control", 2),
+                    PendingIntent.FLAG_UPDATE_CURRENT);
+            playRemoteAction = new RemoteAction(iconPlay, "", "", playIntent);
+
+            smallWindowReceiver = new SmallWindowReceiver();
+            IntentFilter intentFilter = new IntentFilter(smallWindowAction);
+            registerReceiver(smallWindowReceiver, intentFilter);
         }
 
     }
@@ -1383,6 +1438,119 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             case R.id.iv_projection_screen_back:
                 hideProjectionScreenTip();
                 break;
+
+            case R.id.iv_small_window_play:
+                useSmallWindowPlay();
+                break;
+            case R.id.iv_landscape_screenshot:
+                getVideoScreenShot();
+                break;
+            case R.id.iv_portrait_screenshot:
+                getVideoScreenShot();
+                break;
+        }
+    }
+
+    //获取视频截图
+    private void getVideoScreenShot() {
+        String videoScreenShotOutPath = MultiUtils.getVideoScreenShotOutPath();
+        if (!TextUtils.isEmpty(videoScreenShotOutPath)) {
+            Bitmap bitmap = tv_video.getBitmap();
+            boolean videoScreenShot = player.getVideoScreenShot(bitmap, videoScreenShotOutPath);
+            if (videoScreenShot) {
+                //通知系统相册更新
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE,
+                        Uri.fromFile(new File(videoScreenShotOutPath))));
+                MultiUtils.showToast(activity, "已截图");
+            }
+        }
+    }
+
+    //8.0及以上系统支持小窗播放
+    private void useSmallWindowPlay() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (builder == null) {
+                builder = new PictureInPictureParams.Builder();
+            }
+            int width = rl_play_video.getWidth();
+            int height = rl_play_video.getHeight();
+            // 设置宽高比例值
+            if (width > 0 && height > 0) {
+                float whRate = MultiUtils.calFloat(2, width, height);
+                if (whRate > 0.42 && whRate < 2.39) {
+                    Rational aspectRatio = new Rational(width, height);
+                    builder.setAspectRatio(aspectRatio);
+                }
+            }
+
+            if (actions != null && actions.size() > 0) {
+                actions.clear();
+            }
+
+            if (player.isPlaying()) {
+                actions.add(pauseRemoteAction);
+            } else {
+                actions.add(playRemoteAction);
+            }
+            if (actions != null && actions.size() > 0) {
+                builder.setActions(actions);
+            }
+
+            // 进入小窗模式
+            enterPictureInPictureMode(builder.build());
+        }
+
+    }
+
+    private void updateSmallWindowActions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (builder == null) {
+                builder = new PictureInPictureParams.Builder();
+            }
+            if (actions != null && actions.size() > 0) {
+                actions.clear();
+            }
+
+            if (player.isPlaying()) {
+                actions.add(pauseRemoteAction);
+            } else {
+                actions.add(playRemoteAction);
+            }
+            if (actions != null && actions.size() > 0) {
+                builder.setActions(actions);
+            }
+
+            setPictureInPictureParams(builder.build());
+        }
+
+    }
+
+
+    class SmallWindowReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int control = intent.getIntExtra("control", 0);
+            if (control == 1 || control == 2) {
+                playOrPauseVideo();
+                updateSmallWindowActions();
+
+            } else if (control == 3) {
+                if (isSmallWindow) {
+                    finish();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+        isSmallWindow = isInPictureInPictureMode;
+        if (isInPictureInPictureMode) {
+            if (iv_back.getVisibility() == View.VISIBLE) {
+                hideViews();
+            }
         }
     }
 
@@ -1399,6 +1567,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private void hideViews() {
         hideOtherOperations();
         iv_create_gif.setVisibility(View.GONE);
+        iv_landscape_screenshot.setVisibility(View.GONE);
         iv_back.setVisibility(View.GONE);
         iv_lock_or_unlock.setVisibility(View.GONE);
     }
@@ -1414,9 +1583,12 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
         if (isAudioMode) {
             iv_create_gif.setVisibility(View.GONE);
+            iv_landscape_screenshot.setVisibility(View.GONE);
+            iv_portrait_screenshot.setVisibility(View.GONE);
         } else {
             if (isFullScreen && !isProjectioning) {
                 iv_create_gif.setVisibility(View.VISIBLE);
+                iv_landscape_screenshot.setVisibility(View.VISIBLE);
             }
         }
         iv_back.setVisibility(View.VISIBLE);
@@ -1521,6 +1693,11 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             public void landScapeProjection() {
                 setPortrait();
                 showSelectProjectionDevice();
+            }
+
+            @Override
+            public void smallWindowPlay() {
+                useSmallWindowPlay();
             }
         });
         moreSettingsDialog.show();
@@ -1980,11 +2157,19 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         if (isProjectioning) {
             ll_title_and_audio.setBackgroundColor(getResources().getColor(R.color.transparent));
             iv_switch_to_audio.setVisibility(View.INVISIBLE);
+            iv_small_window_play.setVisibility(View.INVISIBLE);
             iv_portrait_projection.setVisibility(View.INVISIBLE);
+            iv_portrait_screenshot.setVisibility(View.INVISIBLE);
         } else {
             if (!isFullScreen) {
                 iv_switch_to_audio.setVisibility(View.VISIBLE);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    iv_small_window_play.setVisibility(View.VISIBLE);
+                }
                 iv_portrait_projection.setVisibility(View.VISIBLE);
+                if (!isAudioMode) {
+                    iv_portrait_screenshot.setVisibility(View.VISIBLE);
+                }
             }
             ll_title_and_audio.setBackgroundColor(getResources().getColor(R.color.play_ope_bac_color));
         }
@@ -1998,6 +2183,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         ll_volume.setVisibility(View.GONE);
         ll_brightness.setVisibility(View.GONE);
         tv_slide_progress.setVisibility(View.GONE);
+        iv_portrait_screenshot.setVisibility(View.GONE);
     }
 
     //切换清晰度
@@ -2411,6 +2597,14 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     //播放完成
     @Override
     public void onCompletion(MediaPlayer mp) {
+
+        if (isSmallWindow) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                sendBroadcast(new Intent("com.bokecc.vod.play.SMALL_WINDOW").putExtra("control", 3));
+            }
+            return;
+        }
+
         if (isLocalPlay) {
             currentPosition = 0;
             updateLastPlayPosition();
@@ -2510,6 +2704,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             ll_audio_view.setVisibility(View.VISIBLE);
             tv_play_definition.setVisibility(View.GONE);
             iv_create_gif.setVisibility(View.GONE);
+            iv_landscape_screenshot.setVisibility(View.GONE);
             iv_switch_to_audio.setImageResource(R.mipmap.iv_video_mode);
         } else {
             iv_switch_to_audio.setImageResource(R.mipmap.iv_audio_mode);
@@ -2560,7 +2755,14 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         iv_next_video.setVisibility(View.GONE);
         iv_lock_or_unlock.setVisibility(View.GONE);
         iv_create_gif.setVisibility(View.GONE);
+        iv_landscape_screenshot.setVisibility(View.GONE);
         iv_switch_to_audio.setVisibility(View.VISIBLE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            iv_small_window_play.setVisibility(View.VISIBLE);
+        }
+        if (!isAudioMode) {
+            iv_portrait_screenshot.setVisibility(View.VISIBLE);
+        }
         iv_portrait_projection.setVisibility(View.VISIBLE);
         //小屏播放隐藏打点信息
         sb_progress.setHotspotShown(false);
@@ -2586,9 +2788,12 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             iv_more_settings.setVisibility(View.VISIBLE);
         }
         iv_switch_to_audio.setVisibility(View.GONE);
+        iv_small_window_play.setVisibility(View.GONE);
+        iv_portrait_screenshot.setVisibility(View.GONE);
         iv_portrait_projection.setVisibility(View.GONE);
         if (!isAudioMode && !isPlayFrontAd) {
             iv_create_gif.setVisibility(View.VISIBLE);
+            iv_landscape_screenshot.setVisibility(View.VISIBLE);
         }
         if (!isPlayFrontAd) {
             iv_lock_or_unlock.setVisibility(View.VISIBLE);
@@ -2599,6 +2804,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             iv_next_video.setVisibility(View.GONE);
             iv_lock_or_unlock.setVisibility(View.GONE);
             iv_create_gif.setVisibility(View.GONE);
+            iv_landscape_screenshot.setVisibility(View.GONE);
             iv_more_settings.setVisibility(View.GONE);
         }
         //全屏播放展示打点信息
@@ -3209,12 +3415,11 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     }
 
     @Override
-    public void onPause() {
-        super.onPause();
+    protected void onStop() {
+        super.onStop();
         if (!isAudioMode) {
             player.pause();
         }
-
     }
 
     @Override
@@ -3244,6 +3449,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
         if (netReceiver != null) {
             unregisterReceiver(netReceiver);
+        }
+
+        if (smallWindowReceiver != null) {
+            unregisterReceiver(smallWindowReceiver);
         }
 
         if (isBindService) {

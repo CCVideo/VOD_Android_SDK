@@ -15,4 +15,6 @@ public interface MoreSettings {
 
     void landScapeProjection();
 
+    void smallWindowPlay();
+
 }

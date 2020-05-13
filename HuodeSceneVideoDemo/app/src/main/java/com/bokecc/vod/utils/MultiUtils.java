@@ -46,6 +46,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 
@@ -55,6 +56,7 @@ import static android.content.Context.WIFI_SERVICE;
  *
  */
 public class MultiUtils {
+
 
     private static String DOWNLOAD_CONTENT = "content://downloads/public_downloads";
 
@@ -209,15 +211,10 @@ public class MultiUtils {
         return editText.getText().toString().trim().replace(" ", "");
     }
 
-    public static long getLong(String str) {
-        long num = 0l;
-
-        try {
-            num = Long.parseLong(str);
-        } catch (NumberFormatException e) {
-        }
-
-        return num;
+    public static float calFloat(int scale, int num1, int num2) {
+        BigDecimal bigDecimal1 = new BigDecimal(String.valueOf(num1));
+        BigDecimal bigDecimal2 = new BigDecimal(String.valueOf(num2));
+        return bigDecimal1.divide(bigDecimal2, scale, BigDecimal.ROUND_HALF_UP).floatValue();
     }
 
     //获取视频图片
@@ -575,5 +572,21 @@ public class MultiUtils {
             max = z;
         }
         return max;
+    }
+
+    public static String getVideoScreenShotOutPath() {
+        if (Environment.MEDIA_MOUNTED.equals(Environment
+                .getExternalStorageState())) {
+            String absolutePath = Environment.getExternalStorageDirectory().getAbsolutePath();
+            File dirPath = new File(absolutePath, ConfigUtil.DOWNLOAD_PATH);
+            if (!dirPath.exists()) {
+                dirPath.mkdirs();
+            }
+            String outPath = dirPath.getAbsolutePath() + File.separator + System.currentTimeMillis() + ".jpg";
+            return outPath;
+        } else {
+            return null;
+        }
+
     }
 }

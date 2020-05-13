@@ -2,11 +2,14 @@ package com.bokecc.vod.view;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.app.PictureInPictureParams;
 import android.content.Context;
 import android.media.AudioManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
+import android.util.Rational;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -24,13 +27,13 @@ import com.bokecc.vod.utils.MultiUtils;
 public class MoreSettingsDialog extends Dialog {
     private Context context;
     private MoreSettings moreSettings;
-    private int currentVideoSizePos, selectedSubtitle,currentBrightness;
+    private int currentVideoSizePos, selectedSubtitle, currentBrightness;
     private String firstSubName, secondSubName;
     private AudioManager audioManager;
     private boolean isAudioMode;
 
-    public MoreSettingsDialog(Context context,boolean isAudioMode,int currentVideoSizePos, int selectedSubtitle,
-                              String firstSubName,String secondSubName,int currentBrightness, MoreSettings moreSettings) {
+    public MoreSettingsDialog(Context context, boolean isAudioMode, int currentVideoSizePos, int selectedSubtitle,
+                              String firstSubName, String secondSubName, int currentBrightness, MoreSettings moreSettings) {
         super(context, R.style.SetVideoDialog);
         this.context = context;
         this.isAudioMode = isAudioMode;
@@ -56,6 +59,7 @@ public class MoreSettingsDialog extends Dialog {
         LinearLayout ll_play_audio = view.findViewById(R.id.ll_play_audio);
         LinearLayout ll_check_network = view.findViewById(R.id.ll_check_network);
         LinearLayout ll_landscape_projection_screen = view.findViewById(R.id.ll_landscape_projection_screen);
+        LinearLayout ll_small_window_play = view.findViewById(R.id.ll_small_window_play);
         LinearLayout ll_download_video = view.findViewById(R.id.ll_download_video);
         LinearLayout ll_video_size = view.findViewById(R.id.ll_video_size);
         LinearLayout ll_subtitle = view.findViewById(R.id.ll_subtitle);
@@ -74,14 +78,14 @@ public class MoreSettingsDialog extends Dialog {
         TextView tv_play_mode = view.findViewById(R.id.tv_play_mode);
         TextView tv_video_size = view.findViewById(R.id.tv_video_size);
         TextView tv_subtitle = view.findViewById(R.id.tv_subtitle);
-        if (isAudioMode){
+        if (isAudioMode) {
             iv_switch_play_mode.setImageResource(R.mipmap.iv_video_mode_big);
             tv_play_mode.setText("视频播放");
             tv_video_size.setVisibility(View.GONE);
             ll_video_size.setVisibility(View.GONE);
             tv_subtitle.setVisibility(View.GONE);
             ll_subtitle.setVisibility(View.GONE);
-        }else {
+        } else {
             iv_switch_play_mode.setImageResource(R.mipmap.iv_audio_mode_big);
             tv_play_mode.setText("音频播放");
         }
@@ -90,6 +94,20 @@ public class MoreSettingsDialog extends Dialog {
             @Override
             public void onClick(View v) {
                 moreSettings.landScapeProjection();
+                dismiss();
+            }
+        });
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ll_small_window_play.setVisibility(View.VISIBLE);
+        }else {
+            ll_small_window_play.setVisibility(View.GONE);
+        }
+
+        ll_small_window_play.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                moreSettings.smallWindowPlay();
                 dismiss();
             }
         });
@@ -167,23 +185,23 @@ public class MoreSettingsDialog extends Dialog {
         }
 
         //字幕设置
-        if (TextUtils.isEmpty(firstSubName) || TextUtils.isEmpty(secondSubName)){
+        if (TextUtils.isEmpty(firstSubName) || TextUtils.isEmpty(secondSubName)) {
             tv_double_subtitles.setVisibility(View.GONE);
         }
 
-        if (TextUtils.isEmpty(firstSubName)){
+        if (TextUtils.isEmpty(firstSubName)) {
             tv_first_subtitle.setVisibility(View.GONE);
-        }else {
+        } else {
             tv_first_subtitle.setText(firstSubName);
         }
 
-        if (TextUtils.isEmpty(secondSubName)){
+        if (TextUtils.isEmpty(secondSubName)) {
             tv_second_subtitle.setVisibility(View.GONE);
-        }else {
+        } else {
             tv_second_subtitle.setText(secondSubName);
         }
 
-        if (TextUtils.isEmpty(firstSubName) && TextUtils.isEmpty(secondSubName)){
+        if (TextUtils.isEmpty(firstSubName) && TextUtils.isEmpty(secondSubName)) {
             tv_close_subtitle.setVisibility(View.GONE);
             tv_no_subtitles.setVisibility(View.VISIBLE);
         }
@@ -220,13 +238,13 @@ public class MoreSettingsDialog extends Dialog {
             }
         });
 
-        if (selectedSubtitle==0){
+        if (selectedSubtitle == 0) {
             tv_first_subtitle.setTextColor(context.getResources().getColor(R.color.orange));
-        }else if (selectedSubtitle == 1){
+        } else if (selectedSubtitle == 1) {
             tv_second_subtitle.setTextColor(context.getResources().getColor(R.color.orange));
-        }else if (selectedSubtitle == 2){
+        } else if (selectedSubtitle == 2) {
             tv_double_subtitles.setTextColor(context.getResources().getColor(R.color.orange));
-        }else if (selectedSubtitle == 3){
+        } else if (selectedSubtitle == 3) {
             tv_close_subtitle.setTextColor(context.getResources().getColor(R.color.orange));
         }
 
@@ -235,7 +253,7 @@ public class MoreSettingsDialog extends Dialog {
         sb_brightness.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                MultiUtils.setBrightness((Activity) context,progress);
+                MultiUtils.setBrightness((Activity) context, progress);
             }
 
             @Override
@@ -276,7 +294,11 @@ public class MoreSettingsDialog extends Dialog {
         Window dialogWindow = getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         DisplayMetrics d = context.getResources().getDisplayMetrics();
-        lp.width = (int) (d.widthPixels * 0.45);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            lp.width = (int) (d.widthPixels * 0.55);
+        }else {
+            lp.width = (int) (d.widthPixels * 0.45);
+        }
         lp.height = (int) (d.heightPixels * 1.0);
         dialogWindow.setAttributes(lp);
         dialogWindow.setGravity(Gravity.RIGHT);

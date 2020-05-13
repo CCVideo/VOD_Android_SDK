@@ -1364,6 +1364,11 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 setPortrait();
                 showSelectProjectionDevice();
             }
+
+            @Override
+            public void smallWindowPlay() {
+
+            }
         });
         moreSettingsDialog.show();
         hideViews();
