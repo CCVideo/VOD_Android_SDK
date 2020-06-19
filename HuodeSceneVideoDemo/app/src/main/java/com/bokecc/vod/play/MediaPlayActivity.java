@@ -15,7 +15,7 @@ import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.Rect;
+import android.graphics.Color;
 import android.graphics.SurfaceTexture;
 import android.graphics.drawable.Icon;
 import android.hardware.Sensor;
@@ -24,7 +24,6 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
-import android.media.session.MediaSession;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
@@ -47,6 +46,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
@@ -77,24 +77,28 @@ import com.bokecc.sdk.mobile.ad.FrontADInfo;
 import com.bokecc.sdk.mobile.ad.PauseADInfo;
 import com.bokecc.sdk.mobile.exception.HuodeException;
 import com.bokecc.sdk.mobile.play.DWMediaPlayer;
+import com.bokecc.sdk.mobile.play.DanmuInfo;
 import com.bokecc.sdk.mobile.play.MarqueeAction;
 import com.bokecc.sdk.mobile.play.MarqueeInfo;
 import com.bokecc.sdk.mobile.play.MarqueeView;
 import com.bokecc.sdk.mobile.play.MediaMode;
 import com.bokecc.sdk.mobile.play.OnAuthMsgListener;
+import com.bokecc.sdk.mobile.play.OnDanmuListListener;
 import com.bokecc.sdk.mobile.play.OnDreamWinErrorListener;
 import com.bokecc.sdk.mobile.play.OnExercisesMsgListener;
 import com.bokecc.sdk.mobile.play.OnHotspotListener;
 import com.bokecc.sdk.mobile.play.OnPlayModeListener;
 import com.bokecc.sdk.mobile.play.OnQAMsgListener;
+import com.bokecc.sdk.mobile.play.OnSendDanmuListener;
 import com.bokecc.sdk.mobile.play.OnVisitMsgListener;
 import com.bokecc.sdk.mobile.play.PlayInfo;
+import com.bokecc.sdk.mobile.util.HttpUtil;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.HuodeApplication;
-import com.bokecc.vod.MainActivity;
 import com.bokecc.vod.R;
 import com.bokecc.vod.adapter.DeviceAdapter;
 import com.bokecc.vod.adapter.PlayListAdapter;
+import com.bokecc.vod.data.DanmuInfoParse;
 import com.bokecc.vod.data.DataSet;
 import com.bokecc.vod.data.Exercise;
 import com.bokecc.vod.data.HuodeVideoInfo;
@@ -109,11 +113,15 @@ import com.bokecc.vod.inter.ExeOperation;
 import com.bokecc.vod.inter.ExercisesContinuePlay;
 import com.bokecc.vod.inter.IsUseMobieNetwork;
 import com.bokecc.vod.inter.MoreSettings;
+import com.bokecc.vod.inter.OnDanmuSet;
+import com.bokecc.vod.inter.OnEditDanmuText;
 import com.bokecc.vod.inter.SelectDefinition;
 import com.bokecc.vod.inter.SelectVideo;
 import com.bokecc.vod.utils.MultiUtils;
 import com.bokecc.vod.view.CheckNetworkDialog;
+import com.bokecc.vod.view.DanmuSetDialog;
 import com.bokecc.vod.view.DoExerciseDialog;
+import com.bokecc.vod.view.EditDanmuTextDialog;
 import com.bokecc.vod.view.ExerciseGuideDialog;
 import com.bokecc.vod.view.GifMakerThread;
 import com.bokecc.vod.view.HotspotSeekBar;
@@ -142,11 +150,18 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeMap;
+
+import master.flame.danmaku.controller.IDanmakuView;
+import master.flame.danmaku.danmaku.model.BaseDanmaku;
+import master.flame.danmaku.danmaku.model.DanmakuTimer;
+import master.flame.danmaku.danmaku.model.IDisplayer;
+import master.flame.danmaku.danmaku.model.android.DanmakuContext;
 
 public class MediaPlayActivity extends Activity implements View.OnClickListener, TextureView.SurfaceTextureListener,
         DWMediaPlayer.OnPreparedListener, DWMediaPlayer.OnInfoListener, DWMediaPlayer.OnBufferingUpdateListener,
@@ -171,7 +186,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private Activity activity;
     private Surface playSurface;
     private boolean isFullScreen = false, isPrepared = false, isAudioMode = false;
-    private int landScapeHeight, landScapeMarginTop, videoHeight, videoWidth, sbDragProgress, playIndex,
+    private int landScapeHeight, landScapeMarginTop, videoHeight, videoWidth, playIndex,
             currentVideoSizePos = 1, currentBrightness, lastPlayPosition = 0;
     //当前播放位置、视频总时长
     private long currentPosition = 0, videoDuration = 0;
@@ -350,6 +365,32 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
     private ImageView iv_landscape_screenshot, iv_portrait_screenshot;
 
+    //网速
+    private String netSpeed;
+    private TextView tv_loading;
+    private Timer netSpeedTimer;
+    private NetSpeedTask netSpeedTask;
+
+    //弹幕
+    private IDanmakuView dm_view;
+    private DanmakuContext danmakuContext;
+    private DanmuInfoParse danmuInfoParse;
+    private HotspotSeekBar sb_portrait_progress;
+    private TextView tv_portrait_current_time, tv_portrait_video_time;
+    private LinearLayout ll_landscape_progress, ll_portrait_progress, ll_landscape_danmu,
+            ll_portrait_danmu_off, ll_portrait_danmu_on, ll_landscape_danmu_set_send;
+    private TextView tv_input_danmu, tv_portrait_input_danmu;
+    private int danmuSec = -1, currentMinutePos = 0;
+    private int getDanmuInterval = 60 * 1000;
+    private ImageView iv_landscape_danmu_set, iv_portrait_danmu_on, iv_portrait_danmu_set,
+            iv_landscape_danmu_switch;
+    private int currentOpaqueness = 100, currentFontSizeLevel = 2, currentDanmuSpeedLevel = 2,
+            currentDisplayArea = 100;
+    private float fontSizeScale = 1.5f, danmuSpeed = 1.0f;
+    private boolean isDanmuOn = true, isCanSendDanmu = true, isPlayAfterSendDanmu = true;
+    private RelativeLayout rl_danmu;
+    private int sendDanmuInterval = 5;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -471,6 +512,32 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
         iv_landscape_screenshot = findViewById(R.id.iv_landscape_screenshot);
         iv_portrait_screenshot = findViewById(R.id.iv_portrait_screenshot);
+        tv_loading = findViewById(R.id.tv_loading);
+
+        dm_view = findViewById(R.id.dm_view);
+        sb_portrait_progress = findViewById(R.id.sb_portrait_progress);
+        tv_portrait_current_time = findViewById(R.id.tv_portrait_current_time);
+        tv_portrait_video_time = findViewById(R.id.tv_portrait_video_time);
+        ll_landscape_progress = findViewById(R.id.ll_landscape_progress);
+        ll_portrait_progress = findViewById(R.id.ll_portrait_progress);
+        ll_landscape_danmu = findViewById(R.id.ll_landscape_danmu);
+        tv_input_danmu = findViewById(R.id.tv_input_danmu);
+        tv_input_danmu.setOnClickListener(this);
+        iv_landscape_danmu_set = findViewById(R.id.iv_landscape_danmu_set);
+        iv_landscape_danmu_set.setOnClickListener(this);
+        ll_portrait_danmu_off = findViewById(R.id.ll_portrait_danmu_off);
+        ll_portrait_danmu_off.setOnClickListener(this);
+        ll_portrait_danmu_on = findViewById(R.id.ll_portrait_danmu_on);
+        iv_portrait_danmu_on = findViewById(R.id.iv_portrait_danmu_on);
+        iv_portrait_danmu_on.setOnClickListener(this);
+        tv_portrait_input_danmu = findViewById(R.id.tv_portrait_input_danmu);
+        tv_portrait_input_danmu.setOnClickListener(this);
+        iv_portrait_danmu_set = findViewById(R.id.iv_portrait_danmu_set);
+        iv_portrait_danmu_set.setOnClickListener(this);
+        iv_landscape_danmu_switch = findViewById(R.id.iv_landscape_danmu_switch);
+        iv_landscape_danmu_switch.setOnClickListener(this);
+        ll_landscape_danmu_set_send = findViewById(R.id.ll_landscape_danmu_set_send);
+        rl_danmu = findViewById(R.id.rl_danmu);
 
         tv_video_title.setText(videoTitle);
         iv_back.setOnClickListener(this);
@@ -545,6 +612,8 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     });
                 } else {
                     player.seekTo(stopPostion);
+                    seekToDanmu(stopPostion);
+                    danmuSec = (stopPostion / getDanmuInterval) - 1;
                     //拖动进度条展示课堂练习
                     if (isShowExercise(stopPostion)) {
                         isShowConfirmExerciseDialog = true;
@@ -554,11 +623,57 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 }
             }
         });
+
+        sb_portrait_progress.setOnSeekBarChangeListener(new HotspotSeekBar.OnSeekBarChangeListener() {
+
+            @Override
+            public void onStartTrackingTouch(HotspotSeekBar seekBar) {
+                returnListenTime = seekBar.getProgress();
+            }
+
+            @Override
+            public void onStopTrackingTouch(HotspotSeekBar seekBar, float trackStopPercent) {
+                int stopPostion = (int) (trackStopPercent * player.getDuration());
+                if (isProjectioning) {
+                    projectionPlayControl.seek(stopPostion, new ProjectionControlCallback() {
+                        @Override
+                        public void success(ProjectionIResponse response) {
+
+                        }
+
+                        @Override
+                        public void fail(ProjectionIResponse response) {
+
+                        }
+                    });
+                } else {
+                    player.seekTo(stopPostion);
+                    seekToDanmu(stopPostion);
+                    danmuSec = (stopPostion / getDanmuInterval) - 1;
+                    //拖动进度条展示课堂练习
+                    if (isShowExercise(stopPostion)) {
+                        isShowConfirmExerciseDialog = true;
+                    } else {
+                        isShowConfirmExerciseDialog = false;
+                    }
+                }
+            }
+        });
+
         //点击打点位置，从这个位置开始播放
         sb_progress.setOnIndicatorTouchListener(new HotspotSeekBar.OnIndicatorTouchListener() {
             @Override
             public void onIndicatorTouch(int currentPosition) {
                 player.seekTo(currentPosition * 1000);
+                seekToDanmu(currentPosition * 1000);
+            }
+        });
+
+        sb_portrait_progress.setOnIndicatorTouchListener(new HotspotSeekBar.OnIndicatorTouchListener() {
+            @Override
+            public void onIndicatorTouch(int currentPosition) {
+                player.seekTo(currentPosition * 1000);
+                seekToDanmu(currentPosition * 1000);
             }
         });
 
@@ -754,6 +869,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                             //调节进度
                             tv_slide_progress.setVisibility(View.GONE);
                             player.seekTo((int) slideProgress);
+                            seekToDanmu((int) slideProgress);
                         }
                         break;
                 }
@@ -816,6 +932,45 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             smallWindowReceiver = new SmallWindowReceiver();
             IntentFilter intentFilter = new IntentFilter(smallWindowAction);
             registerReceiver(smallWindowReceiver, intentFilter);
+        }
+
+        //弹幕
+        danmakuContext = DanmakuContext.create();
+        HashMap<Integer, Boolean> overlappingEnable = new HashMap<Integer, Boolean>();
+        overlappingEnable.put(BaseDanmaku.TYPE_SCROLL_RL, true);
+        overlappingEnable.put(BaseDanmaku.TYPE_FIX_TOP, true);
+        danmakuContext.setDanmakuStyle(IDisplayer.DANMAKU_STYLE_STROKEN, 2)
+                .setDuplicateMergingEnabled(false)
+                .preventOverlapping(overlappingEnable)
+                .setDanmakuMargin(50);
+        if (dm_view != null) {
+            danmuInfoParse = new DanmuInfoParse();
+            dm_view.setCallback(new master.flame.danmaku.controller.DrawHandler.Callback() {
+                @Override
+                public void updateTimer(DanmakuTimer timer) {
+
+                }
+
+                @Override
+                public void drawingFinished() {
+
+                }
+
+                @Override
+                public void danmakuShown(BaseDanmaku danmaku) {
+
+                }
+
+                @Override
+                public void prepared() {
+                    dm_view.start();
+                    if (!isDanmuOn) {
+                        dm_view.hide();
+                    }
+                }
+            });
+            dm_view.prepare(danmuInfoParse, danmakuContext);
+            dm_view.enableDanmakuDrawingCache(true);
         }
 
     }
@@ -1019,6 +1174,28 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             getAdInfo();
         }
 
+        //查询弹幕结果
+        player.setOnDanmuListListener(new OnDanmuListListener() {
+            @Override
+            public void onSuccess(final ArrayList<DanmuInfo> danmuInfos) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        dm_view.removeAllDanmakus(true);
+                        for (DanmuInfo danmuInfo : danmuInfos) {
+                            addDanmu(danmuInfo.getContent(), danmuInfo.getFc(), danmuInfo.getPt(), false);
+                        }
+                        seekToDanmu(currentPosition);
+                    }
+                });
+            }
+
+            @Override
+            public void onFail(String msg) {
+                danmuSec = currentMinutePos - 1;
+            }
+        });
+
     }
 
     //获得广告信息
@@ -1063,6 +1240,8 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     }
 
     private void requestAd() {
+        startNetSpeedTimer();
+
         isPrepared = false;
         frontAdPosition = 0;
         dwMediaAD = new DWMediaAD(dwMediaADListener, ConfigUtil.USERID, videoId);
@@ -1448,7 +1627,192 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             case R.id.iv_portrait_screenshot:
                 getVideoScreenShot();
                 break;
+            case R.id.tv_input_danmu:
+                sendDanmu(false);
+                break;
+            case R.id.iv_landscape_danmu_set:
+                showDanmuSet();
+                break;
+
+            case R.id.ll_portrait_danmu_off:
+                openDanmu();
+                break;
+
+            case R.id.iv_portrait_danmu_on:
+                closeDanmu();
+                break;
+
+            case R.id.iv_landscape_danmu_switch:
+                if (isDanmuOn) {
+                    closeDanmu();
+                } else {
+                    openDanmu();
+                }
+                break;
+            case R.id.tv_portrait_input_danmu:
+                sendDanmu(true);
+                break;
+            case R.id.iv_portrait_danmu_set:
+                showDanmuSet();
+                break;
+
         }
+    }
+
+    //打开弹幕
+    private void openDanmu() {
+        showInputDanmu();
+        isDanmuOn = true;
+        if (!dm_view.isShown()) {
+            dm_view.show();
+        }
+        resumeDanmu();
+        seekToDanmu(currentPosition);
+    }
+
+    private void showInputDanmu() {
+        ll_portrait_danmu_off.setVisibility(View.GONE);
+        ll_portrait_danmu_on.setVisibility(View.VISIBLE);
+        ll_landscape_danmu_set_send.setVisibility(View.VISIBLE);
+        iv_landscape_danmu_switch.setImageResource(R.mipmap.iv_danmu_on);
+    }
+
+    //关闭弹幕
+    private void closeDanmu() {
+        ll_portrait_danmu_on.setVisibility(View.GONE);
+        ll_portrait_danmu_off.setVisibility(View.VISIBLE);
+        ll_landscape_danmu_set_send.setVisibility(View.INVISIBLE);
+        iv_landscape_danmu_switch.setImageResource(R.mipmap.iv_danmu_off);
+        isDanmuOn = false;
+        if (dm_view.isShown()) {
+            dm_view.hide();
+        }
+        pauseDanmu();
+    }
+
+    //弹幕设置
+    private void showDanmuSet() {
+        hideViews();
+        DanmuSetDialog danmuSetDialog = new DanmuSetDialog(activity, isFullScreen, currentOpaqueness, currentFontSizeLevel, currentDanmuSpeedLevel, currentDisplayArea, new OnDanmuSet() {
+            @Override
+            public void setOpaqueness(int opaqueness) {
+                currentOpaqueness = opaqueness;
+                float opaquenessFloat = MultiUtils.calFloat(2, opaqueness, 100);
+                danmakuContext.setDanmakuTransparency(opaquenessFloat);
+            }
+
+            @Override
+            public void setFontSizeLevel(int fontSizeLevel) {
+                currentFontSizeLevel = fontSizeLevel;
+                if (fontSizeLevel == 0) {
+                    fontSizeScale = 0.5f;
+                } else if (fontSizeLevel == 1) {
+                    fontSizeScale = 1.0f;
+                } else if (fontSizeLevel == 2) {
+                    fontSizeScale = 1.5f;
+                } else if (fontSizeLevel == 3) {
+                    fontSizeScale = 2.0f;
+                } else if (fontSizeLevel == 4) {
+                    fontSizeScale = 2.5f;
+                }
+                danmakuContext.setScaleTextSize(fontSizeScale);
+            }
+
+            @Override
+            public void setDanmuSpeed(int danmuSpeedLevel) {
+                currentDanmuSpeedLevel = danmuSpeedLevel;
+                if (danmuSpeedLevel == 0) {
+                    danmuSpeed = 2.0f;
+                } else if (danmuSpeedLevel == 1) {
+                    danmuSpeed = 1.5f;
+                } else if (danmuSpeedLevel == 2) {
+                    danmuSpeed = 1.0f;
+                } else if (danmuSpeedLevel == 3) {
+                    danmuSpeed = 0.75f;
+                } else if (danmuSpeedLevel == 4) {
+                    danmuSpeed = 0.5f;
+                }
+                danmakuContext.setScrollSpeedFactor(danmuSpeed);
+            }
+
+            @Override
+            public void setDisplayArea(int displayArea) {
+                currentDisplayArea = displayArea;
+                float displayAreaFloat = MultiUtils.calFloat(2, currentDisplayArea, 100);
+                int height = rl_play_video.getHeight();
+                int danmuViewHeight = (int) (displayAreaFloat * height);
+                ViewGroup.LayoutParams layoutParams = rl_danmu.getLayoutParams();
+                layoutParams.height = danmuViewHeight;
+                rl_danmu.setLayoutParams(layoutParams);
+            }
+        });
+        danmuSetDialog.show();
+        danmuSetDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                if (!isFullScreen) {
+                    iv_portrait_danmu_set.setImageResource(R.mipmap.iv_danmu_set_gray);
+                }
+            }
+        });
+    }
+
+    //发送弹幕
+    private void sendDanmu(boolean isPortrait) {
+        if (!isCanSendDanmu) {
+            return;
+        }
+        final EditDanmuTextDialog editDanmuTextDialog = new EditDanmuTextDialog(activity, isPortrait, new OnEditDanmuText() {
+            @Override
+            public void getDanmuText(final String danmuText, final String danmuColor) {
+
+                player.sendDanmu(videoId, danmuText, currentPosition, danmuColor, new OnSendDanmuListener() {
+                    @Override
+                    public void onSuccess() {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                isCanSendDanmu = false;
+                                sendDanmuInterval = 5;
+                                addDanmu(danmuText, danmuColor, currentPosition, true);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onFail(final String msg) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                MultiUtils.showToast(activity, "发送弹幕失败：" + msg);
+                            }
+                        });
+                    }
+                });
+
+            }
+        });
+        editDanmuTextDialog.show();
+        if (isPlayVideo && isFullScreen) {
+            playOrPauseVideo();
+            isPlayAfterSendDanmu = true;
+        } else if (isFullScreen) {
+            isPlayAfterSendDanmu = false;
+        }
+        editDanmuTextDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                if (isPlayAfterSendDanmu && isFullScreen) {
+                    playOrPauseVideo();
+                }
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        MultiUtils.hideSoftKeyboard(tv_video);
+                    }
+                }, 100);
+            }
+        });
     }
 
     //获取视频截图
@@ -1551,6 +1915,62 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             if (iv_back.getVisibility() == View.VISIBLE) {
                 hideViews();
             }
+            if (dm_view.isShown()) {
+                dm_view.hide();
+            }
+        } else {
+            if (!dm_view.isShown()) {
+                dm_view.show();
+            }
+        }
+    }
+
+    //发送弹幕
+    private void addDanmu(String danmuText, String danmuColor, long time, boolean isSend) {
+        BaseDanmaku danmaku = danmakuContext.mDanmakuFactory.createDanmaku(BaseDanmaku.TYPE_SCROLL_RL);
+        if (danmaku == null || dm_view == null) {
+            return;
+        }
+        danmaku.text = danmuText;
+        danmaku.padding = 5;
+        danmaku.isLive = false;
+        danmaku.priority = 0;
+        if (isSend) {
+            danmaku.setTime(time + 1500);
+        } else {
+            danmaku.setTime(time);
+        }
+        danmaku.textSize = 60f;
+        if (!TextUtils.isEmpty(danmuColor) && danmuColor.length() == 8) {
+            String textColor = "#" + danmuColor.substring(2, 8);
+            if (textColor.length() == 7) {
+                //textColor：颜色，格式如：#ffffff
+                int color = Color.parseColor(textColor);
+                danmaku.textColor = color;
+                if (isSend) {
+                    danmaku.borderColor = color;
+                }
+            }
+        }
+        danmaku.textShadowColor = Color.BLACK;
+        dm_view.addDanmaku(danmaku);
+    }
+
+    private void seekToDanmu(long time) {
+        if (dm_view != null && dm_view.isPrepared() && isDanmuOn) {
+            dm_view.seekTo(time);
+        }
+    }
+
+    private void pauseDanmu() {
+        if (dm_view != null && dm_view.isPrepared()) {
+            dm_view.pause();
+        }
+    }
+
+    private void resumeDanmu() {
+        if (dm_view != null && dm_view.isPrepared() && dm_view.isPaused()) {
+            dm_view.resume();
         }
     }
 
@@ -2077,6 +2497,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     private void playOrPauseVideo() {
         if (player.isPlaying()) {
             player.pause();
+            pauseDanmu();
             isPlayVideo = false;
             iv_play_pause.setImageResource(R.mipmap.iv_play);
             //展示暂停广告
@@ -2108,6 +2529,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             }
         } else {
             player.start();
+            resumeDanmu();
             isPlayVideo = true;
             iv_play_pause.setImageResource(R.mipmap.iv_pause);
             if (rl_pause_ad.getVisibility() == View.VISIBLE) {
@@ -2263,6 +2685,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     //从上次播放的位置开始播放
                     player.seekTo(lastPlayPosition);
                     player.start();
+                    danmuSec = (lastPlayPosition / getDanmuInterval) - 1;
                     //从记忆播放处展示课堂练习
                     if (isShowExercise(lastPlayPosition)) {
                         isShowConfirmExerciseDialog = true;
@@ -2318,6 +2741,8 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         //设置视频总时长
         videoDuration = player.getDuration();
         tv_video_time.setText(MultiUtils.millsecondsToMinuteSecondStr(videoDuration));
+        tv_portrait_video_time.setText(MultiUtils.millsecondsToMinuteSecondStr(videoDuration));
+        showInputDanmu();
         //如果正在播放广告
         if (isPlayFrontAd) {
             ll_ad.setVisibility(View.VISIBLE);
@@ -2339,6 +2764,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         //展示视频打点信息
         if (hotSpotDatas != null && hotSpotDatas.size() > 0) {
             sb_progress.setHotSpotPosition(hotSpotDatas, videoDuration / 1000);
+            sb_portrait_progress.setHotSpotPosition(hotSpotDatas, videoDuration / 1000);
         }
 
         //运行跑马灯
@@ -2349,6 +2775,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     public boolean onInfo(MediaPlayer mp, int what, int extra) {
         switch (what) {
             case DWMediaPlayer.MEDIA_INFO_BUFFERING_START:
+                if (isDanmuOn) {
+                    pauseDanmu();
+                }
                 netWorkStatus = MultiUtils.getNetWorkStatus(activity);
                 if (netWorkStatus == 0 && !isLocalPlay) {
                     isNoNetPause = true;
@@ -2368,6 +2797,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 }
                 break;
             case DWMediaPlayer.MEDIA_INFO_BUFFERING_END:
+                if (isDanmuOn) {
+                    resumeDanmu();
+                }
                 if (!isLocalPlay) {
                     isNoNetPause = false;
                 }
@@ -2592,6 +3024,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
     @Override
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         sb_progress.setSecondaryProgress(percent);
+        sb_portrait_progress.setSecondaryProgress(percent);
     }
 
     //播放完成
@@ -2658,6 +3091,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         if (hotSpotDatas != null) {
             hotSpotDatas.clear();
             sb_progress.clearHotSpots();
+            sb_portrait_progress.clearHotSpots();
         }
         //清除访客信息
         resetVisitorInfo();
@@ -2757,6 +3191,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         iv_create_gif.setVisibility(View.GONE);
         iv_landscape_screenshot.setVisibility(View.GONE);
         iv_switch_to_audio.setVisibility(View.VISIBLE);
+        ll_landscape_progress.setVisibility(View.GONE);
+        ll_portrait_progress.setVisibility(View.VISIBLE);
+        ll_landscape_danmu.setVisibility(View.GONE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             iv_small_window_play.setVisibility(View.VISIBLE);
         }
@@ -2766,6 +3203,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         iv_portrait_projection.setVisibility(View.VISIBLE);
         //小屏播放隐藏打点信息
         sb_progress.setHotspotShown(false);
+        sb_portrait_progress.setHotspotShown(false);
         iv_more_settings.setVisibility(View.GONE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -2791,6 +3229,10 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         iv_small_window_play.setVisibility(View.GONE);
         iv_portrait_screenshot.setVisibility(View.GONE);
         iv_portrait_projection.setVisibility(View.GONE);
+
+        ll_landscape_progress.setVisibility(View.VISIBLE);
+        ll_portrait_progress.setVisibility(View.GONE);
+        ll_landscape_danmu.setVisibility(View.VISIBLE);
         if (!isAudioMode && !isPlayFrontAd) {
             iv_create_gif.setVisibility(View.VISIBLE);
             iv_landscape_screenshot.setVisibility(View.VISIBLE);
@@ -2809,6 +3251,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         }
         //全屏播放展示打点信息
         sb_progress.setHotspotShown(true);
+        sb_portrait_progress.setHotspotShown(true);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         RelativeLayout.LayoutParams videoLayoutParams = (RelativeLayout.LayoutParams) rl_play_video.getLayoutParams();
@@ -2903,7 +3346,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     public void run() {
                         currentPosition = player.getCurrentPosition();
                         tv_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr(currentPosition));
+                        tv_portrait_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr(currentPosition));
                         sb_progress.setProgress((int) currentPosition, (int) videoDuration);
+                        sb_portrait_progress.setProgress((int) currentPosition, (int) videoDuration);
                         //更新字幕
                         sv_subtitle.refreshSubTitle(currentPosition);
                         //展示问答题
@@ -2949,6 +3394,59 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                             player.pauseWithoutAnalyse(); //针对有的手机上无法暂停，反复调用pause()
                         }
 
+                        //请求弹幕数据，间隔1分钟
+                        currentMinutePos = (int) (currentPosition / getDanmuInterval);
+                        if (currentMinutePos != danmuSec && isDanmuOn) {
+                            player.getDanmuList(videoId, (danmuSec + 1));
+                            danmuSec = currentMinutePos;
+                        }
+
+                        //发送弹幕间隔
+                        if (sendDanmuInterval >= 0 && !isCanSendDanmu) {
+                            tv_input_danmu.setText(sendDanmuInterval + "s");
+                            tv_portrait_input_danmu.setText(sendDanmuInterval + "s");
+
+                            if (sendDanmuInterval == 0) {
+                                isCanSendDanmu = true;
+                                tv_input_danmu.setText("弹幕走一波");
+                                tv_portrait_input_danmu.setText("点我发弹幕");
+                            }
+                            sendDanmuInterval--;
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    //开启网速计时器任务
+    private void startNetSpeedTimer() {
+        cancelNetSpeedTimer();
+        netSpeedTimer = new Timer();
+        netSpeedTask = new NetSpeedTask();
+        netSpeedTimer.schedule(netSpeedTask, 0, 1000);
+    }
+
+    //取消网速计时器任务
+    private void cancelNetSpeedTimer() {
+        if (netSpeedTimer != null) {
+            netSpeedTimer.cancel();
+        }
+        if (netSpeedTask != null) {
+            netSpeedTask.cancel();
+        }
+    }
+
+    //网速计时器任务
+    class NetSpeedTask extends TimerTask {
+        @Override
+        public void run() {
+            if (MultiUtils.isActivityAlive(activity)) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        netSpeed = MultiUtils.getNetSpeed(activity.getApplicationInfo().uid);
+                        tv_loading.setText("加载中 " + netSpeed);
                     }
                 });
             }
@@ -2992,7 +3490,9 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                             public void run() {
                                 if (trackDurationSeconds > 0) {
                                     tv_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr((trackElapsedSeconds * 1000)));
+                                    tv_portrait_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr((trackElapsedSeconds * 1000)));
                                     sb_progress.setProgress((int) trackElapsedSeconds, (int) trackDurationSeconds);
+                                    sb_portrait_progress.setProgress((int) trackElapsedSeconds, (int) trackDurationSeconds);
                                     if (trackElapsedSeconds >= (trackDurationSeconds - 2)) {
                                         mHandler.sendEmptyMessage(STOP_ACTION);
                                     }
@@ -3420,6 +3920,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         if (!isAudioMode) {
             player.pause();
         }
+        pauseDanmu();
     }
 
     @Override
@@ -3428,7 +3929,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         if (isPrepared && !isAudioMode && isPlayVideo) {
             player.start();
         }
-
+        resumeDanmu();
     }
 
     @Override
@@ -3441,6 +3942,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         cancelAdTimer();
         cancelProjectionTimer();
         cancelSearchDeviceTimer();
+        cancelNetSpeedTimer();
         if (player != null) {
             player.pause();
             player.stop();
@@ -3453,6 +3955,11 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
 
         if (smallWindowReceiver != null) {
             unregisterReceiver(smallWindowReceiver);
+        }
+
+        if (dm_view != null) {
+            dm_view.release();
+            dm_view = null;
         }
 
         if (isBindService) {

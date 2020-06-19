@@ -12,6 +12,7 @@ import android.media.ThumbnailUtils;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkInfo;
+import android.net.TrafficStats;
 import android.net.Uri;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiInfo;
@@ -29,13 +30,16 @@ import android.view.Display;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.bokecc.sdk.mobile.play.DanmuInfo;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.HuodeApplication;
 import com.bokecc.vod.R;
+import com.bokecc.vod.data.DanmuColorInfo;
 import com.bokecc.vod.view.RoundCornerTransform;
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -47,6 +51,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -588,5 +593,126 @@ public class MultiUtils {
             return null;
         }
 
+    }
+
+    private static long lastTotalRxBytes = 0;
+    private static long lastTime = 0;
+
+    public static String getNetSpeed(int uid) {
+        long currentTotalRxBytes = getTotalRxBytes(uid);
+        long currentTime = System.currentTimeMillis();
+        long kbSpeed = ((currentTotalRxBytes - lastTotalRxBytes) * 1000 / (currentTime - lastTime));
+        lastTime = currentTime;
+        lastTotalRxBytes = currentTotalRxBytes;
+        if (kbSpeed > 1024) {
+            float mbSpeed = calMbSpeed(2, kbSpeed, 1024);
+            return mbSpeed + "MB/s";
+        } else {
+            return kbSpeed + "KB/s";
+        }
+    }
+
+
+    public static long getTotalRxBytes(int uid) {
+        return TrafficStats.getUidRxBytes(uid) == TrafficStats.UNSUPPORTED ? 0 : (TrafficStats.getTotalRxBytes() / 1024);
+    }
+
+    public static float calMbSpeed(int scale, long num1, long num2) {
+        BigDecimal bigDecimal1 = new BigDecimal(String.valueOf(num1));
+        BigDecimal bigDecimal2 = new BigDecimal(String.valueOf(num2));
+        return bigDecimal1.divide(bigDecimal2, scale, BigDecimal.ROUND_HALF_UP).floatValue();
+    }
+
+    //隐藏软键盘
+    public static void hideSoftKeyboard(View view) {
+        InputMethodManager inputMethodManager = (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (inputMethodManager != null) {
+            inputMethodManager.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
+
+    //显示软键盘
+    public static void showSoftKeyboard(View view) {
+        InputMethodManager inputMethodManager = (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (inputMethodManager != null) {
+            inputMethodManager.toggleSoftInput(0, InputMethodManager.HIDE_NOT_ALWAYS);
+        }
+    }
+
+    public static List<DanmuColorInfo> getDanmuColorInfoDatas() {
+        List<DanmuColorInfo> datas = new ArrayList<>();
+
+        DanmuColorInfo danmuColorInfo1 = new DanmuColorInfo();
+        danmuColorInfo1.setNormalImgRes(R.mipmap.danmu_color_one_normal);
+        danmuColorInfo1.setSelectdImgRes(R.mipmap.danmu_color_one_selected);
+        danmuColorInfo1.setSelected(false);
+        //颜色值为0x开头的小写字母组成 如0xffffff
+        danmuColorInfo1.setColor("0xffffff");
+        datas.add(danmuColorInfo1);
+
+        DanmuColorInfo danmuColorInfo2 = new DanmuColorInfo();
+        danmuColorInfo2.setNormalImgRes(R.mipmap.danmu_color_two_normal);
+        danmuColorInfo2.setSelectdImgRes(R.mipmap.danmu_color_two_selected);
+        danmuColorInfo2.setSelected(false);
+        danmuColorInfo2.setColor("0x999999");
+        datas.add(danmuColorInfo2);
+
+        DanmuColorInfo danmuColorInfo3 = new DanmuColorInfo();
+        danmuColorInfo3.setNormalImgRes(R.mipmap.danmu_color_three_normal);
+        danmuColorInfo3.setSelectdImgRes(R.mipmap.danmu_color_three_selected);
+        danmuColorInfo3.setSelected(false);
+        danmuColorInfo3.setColor("0xe6151e");
+        datas.add(danmuColorInfo3);
+
+        DanmuColorInfo danmuColorInfo4 = new DanmuColorInfo();
+        danmuColorInfo4.setNormalImgRes(R.mipmap.danmu_color_four_normal);
+        danmuColorInfo4.setSelectdImgRes(R.mipmap.danmu_color_four_selected);
+        danmuColorInfo4.setSelected(false);
+        danmuColorInfo4.setColor("0x9d22b1");
+        datas.add(danmuColorInfo4);
+
+        DanmuColorInfo danmuColorInfo5 = new DanmuColorInfo();
+        danmuColorInfo5.setNormalImgRes(R.mipmap.danmu_color_five_normal);
+        danmuColorInfo5.setSelectdImgRes(R.mipmap.danmu_color_five_selected);
+        danmuColorInfo5.setSelected(false);
+        danmuColorInfo5.setColor("0x6738b8");
+        datas.add(danmuColorInfo5);
+
+        DanmuColorInfo danmuColorInfo6 = new DanmuColorInfo();
+        danmuColorInfo6.setNormalImgRes(R.mipmap.danmu_color_six_normal);
+        danmuColorInfo6.setSelectdImgRes(R.mipmap.danmu_color_six_selected);
+        danmuColorInfo6.setSelected(false);
+        danmuColorInfo6.setColor("0x3d50b6");
+        datas.add(danmuColorInfo6);
+
+        DanmuColorInfo danmuColorInfo7 = new DanmuColorInfo();
+        danmuColorInfo7.setNormalImgRes(R.mipmap.danmu_color_seven_normal);
+        danmuColorInfo7.setSelectdImgRes(R.mipmap.danmu_color_seven_selected);
+        danmuColorInfo7.setSelected(false);
+        danmuColorInfo7.setColor("0x03a9f4");
+        datas.add(danmuColorInfo7);
+
+        DanmuColorInfo danmuColorInfo8 = new DanmuColorInfo();
+        danmuColorInfo8.setNormalImgRes(R.mipmap.danmu_color_eight_normal);
+        danmuColorInfo8.setSelectdImgRes(R.mipmap.danmu_color_eight_selected);
+        danmuColorInfo8.setSelected(false);
+        danmuColorInfo8.setColor("0x009688");
+        datas.add(danmuColorInfo8);
+
+        DanmuColorInfo danmuColorInfo9 = new DanmuColorInfo();
+        danmuColorInfo9.setNormalImgRes(R.mipmap.danmu_color_nine_normal);
+        danmuColorInfo9.setSelectdImgRes(R.mipmap.danmu_color_nine_selected);
+        danmuColorInfo9.setSelected(false);
+        danmuColorInfo9.setColor("0x259b24");
+        datas.add(danmuColorInfo9);
+
+        DanmuColorInfo danmuColorInfo10 = new DanmuColorInfo();
+        danmuColorInfo10.setNormalImgRes(R.mipmap.danmu_color_ten_normal);
+        danmuColorInfo10.setSelectdImgRes(R.mipmap.danmu_color_ten_selected);
+        danmuColorInfo10.setSelected(false);
+        danmuColorInfo10.setColor("0x8bc34a");
+        datas.add(danmuColorInfo10);
+
+        return datas;
     }
 }

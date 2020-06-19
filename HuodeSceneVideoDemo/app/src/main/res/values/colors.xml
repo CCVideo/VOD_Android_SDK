@@ -24,5 +24,9 @@
     <color name="questionAnalysis">#666666</color>
     <color name="rightOrErrorRateBac">#1E1F21</color>
     <color name="explainInfoBac">#F6F6F7</color>
+    <color name="editDanmuBac">#33999999</color>
+    <color name="inputDanmuLayoutBac">#27282A</color>
+    <color name="landscapeDanmuColorBac">#3D3D3F</color>
+    <color name="danmuControlBac">#DDDDDD</color>
 
 </resources>

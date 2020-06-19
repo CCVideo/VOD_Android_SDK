@@ -13,6 +13,76 @@
             android:layout_width="match_parent"
             android:layout_height="200dp" />
 
+        <LinearLayout
+            android:id="@+id/ll_portrait_danmu_off"
+            android:layout_width="50dp"
+            android:layout_height="30dp"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="5dp"
+            android:background="@drawable/danmu_control_fifteen_corner_bac"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:src="@mipmap/iv_danmu_off_gray" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ll_portrait_danmu_on"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_marginRight="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="invisible">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="30dp"
+                android:background="@drawable/danmu_control_fifteen_corner_bac"
+                android:gravity="center">
+
+                <ImageView
+                    android:id="@+id/iv_portrait_danmu_on"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:src="@mipmap/iv_danmu_on" />
+
+                <View
+                    android:layout_width="0.5dp"
+                    android:layout_height="match_parent"
+                    android:background="@color/danmuControlBac" />
+
+                <ImageView
+                    android:id="@+id/iv_portrait_danmu_set"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:src="@mipmap/iv_danmu_set_gray" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_portrait_input_danmu"
+                android:layout_width="0dp"
+                android:layout_height="30dp"
+                android:layout_marginLeft="10dp"
+                android:layout_weight="1"
+                android:background="@drawable/portrait_input_danmu_fifteen_corner_bac"
+                android:gravity="center_vertical"
+                android:paddingLeft="15dp"
+                android:text="点我发弹幕"
+                android:textColor="@color/gray"
+                android:textSize="13sp" />
+        </LinearLayout>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -104,6 +174,17 @@
             android:id="@+id/mv_video"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
+
+        <RelativeLayout
+            android:id="@+id/rl_danmu"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <master.flame.danmaku.ui.widget.DanmakuView
+                android:id="@+id/dm_view"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+        </RelativeLayout>
 
         <com.bokecc.vod.view.SubtitleView
             android:id="@+id/sv_subtitle"
@@ -459,7 +540,7 @@
                 android:layout_height="30dp"
                 android:layout_marginLeft="10dp"
                 android:src="@mipmap/iv_portrait_small_window_play"
-                android:visibility="gone"/>
+                android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/iv_portrait_projection"
@@ -500,6 +581,7 @@
                 android:layout_height="50dp" />
 
             <TextView
+                android:id="@+id/tv_loading"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -512,35 +594,23 @@
         <LinearLayout
             android:id="@+id/ll_progress_and_fullscreen"
             android:layout_width="match_parent"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:background="@color/play_ope_bac_color"
             android:gravity="center_vertical"
-            android:orientation="horizontal"
+            android:orientation="vertical"
             android:paddingLeft="8dp"
             android:paddingRight="8dp"
             android:visibility="invisible">
 
-            <ImageView
-                android:id="@+id/iv_play_pause"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginRight="10dp"
-                android:src="@mipmap/iv_pause" />
-
-            <ImageView
-                android:id="@+id/iv_next_video"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginRight="10dp"
-                android:src="@mipmap/iv_next"
-                android:visibility="gone" />
-
             <LinearLayout
-                android:layout_width="95dp"
+                android:id="@+id/ll_landscape_progress"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center"
-                android:orientation="horizontal">
+                android:layout_margin="10dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:visibility="gone">
 
                 <TextView
                     android:id="@+id/tv_current_time"
@@ -550,12 +620,11 @@
                     android:textColor="@color/white"
                     android:textSize="14sp" />
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="/"
-                    android:textColor="@color/gray"
-                    android:textSize="14sp" />
+                <com.bokecc.vod.view.HotspotSeekBar
+                    android:id="@+id/sb_progress"
+                    android:layout_width="0dp"
+                    android:layout_height="20dp"
+                    android:layout_weight="1" />
 
                 <TextView
                     android:id="@+id/tv_video_time"
@@ -566,58 +635,171 @@
 
             </LinearLayout>
 
-
-            <com.bokecc.vod.view.HotspotSeekBar
-                android:id="@+id/sb_progress"
-                android:layout_width="0dp"
-                android:layout_height="20dp"
-                android:layout_weight="1" />
-
             <LinearLayout
-                android:id="@+id/ll_speed_def_select"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginRight="10dp"
-                android:orientation="horizontal"
-                android:visibility="gone">
+                android:layout_width="match_parent"
+                android:layout_height="40dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/tv_play_speed"
+                <ImageView
+                    android:id="@+id/iv_play_pause"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginRight="10dp"
+                    android:src="@mipmap/iv_pause" />
+
+                <ImageView
+                    android:id="@+id/iv_next_video"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:layout_marginRight="10dp"
+                    android:src="@mipmap/iv_next"
+                    android:visibility="gone" />
+
+                <LinearLayout
+                    android:id="@+id/ll_portrait_progress"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="95dp"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/tv_portrait_current_time"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="00:00"
+                            android:textColor="@color/white"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="/"
+                            android:textColor="@color/gray"
+                            android:textSize="14sp" />
+
+                        <TextView
+                            android:id="@+id/tv_portrait_video_time"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/gray"
+                            android:textSize="14sp" />
+
+                    </LinearLayout>
+
+                    <com.bokecc.vod.view.HotspotSeekBar
+                        android:id="@+id/sb_portrait_progress"
+                        android:layout_width="0dp"
+                        android:layout_height="20dp"
+                        android:layout_weight="1" />
+
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/ll_landscape_danmu"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
+
+                    <ImageView
+                        android:id="@+id/iv_landscape_danmu_switch"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+                        android:layout_marginRight="15dp"
+                        android:src="@mipmap/iv_danmu_on" />
+
+                    <LinearLayout
+                        android:id="@+id/ll_landscape_danmu_set_send"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:visibility="invisible">
+
+                        <ImageView
+                            android:id="@+id/iv_landscape_danmu_set"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:layout_marginRight="15dp"
+                            android:src="@mipmap/iv_danmu_set" />
+
+                        <TextView
+                            android:id="@+id/tv_input_danmu"
+                            android:layout_width="0dp"
+                            android:layout_height="30dp"
+                            android:layout_marginRight="25dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/landscape_edit_danmu_corner_bac"
+                            android:gravity="center_vertical"
+                            android:hint="点我发弹幕"
+                            android:paddingLeft="15dp"
+                            android:paddingRight="15dp"
+                            android:textColor="@color/white"
+                            android:textColorHint="@color/white"
+                            android:textSize="13sp" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+
+                <LinearLayout
+                    android:id="@+id/ll_speed_def_select"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="倍速"
-                    android:textColor="@color/white"
-                    android:textSize="15sp" />
+                    android:layout_marginRight="10dp"
+                    android:orientation="horizontal"
+                    android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/tv_play_definition"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="15dp"
-                    android:text="清晰"
-                    android:textColor="@color/white"
-                    android:textSize="15sp" />
+                    <TextView
+                        android:id="@+id/tv_play_speed"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="倍速"
+                        android:textColor="@color/white"
+                        android:textSize="15sp" />
 
-                <TextView
-                    android:id="@+id/tv_video_select"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="15dp"
-                    android:text="选集"
-                    android:textColor="@color/white"
-                    android:textSize="15sp" />
+                    <TextView
+                        android:id="@+id/tv_play_definition"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="15dp"
+                        android:text="清晰"
+                        android:textColor="@color/white"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/tv_video_select"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginLeft="15dp"
+                        android:text="选集"
+                        android:textColor="@color/white"
+                        android:textSize="15sp" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/iv_video_full_screen"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
+                    android:src="@mipmap/iv_full_screen" />
 
             </LinearLayout>
 
-
-            <ImageView
-                android:id="@+id/iv_video_full_screen"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:src="@mipmap/iv_full_screen" />
-
-
         </LinearLayout>
+
 
         <LinearLayout
             android:layout_width="wrap_content"

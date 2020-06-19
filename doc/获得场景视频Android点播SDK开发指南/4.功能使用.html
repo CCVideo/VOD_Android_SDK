@@ -379,20 +379,80 @@ private void useSmallWindowPlay() {
             }
         }
 }
-</pre><h2><a name='header-n109' class='md-header-anchor '></a>4.21 错误处理</h2><p>错误信息有两种，一种是播放器触发的错误，另一种是获得场景视频自定义的错误。</p><h3><a name='header-n111' class='md-header-anchor '></a>4.21.1 监听播放器的错误事件</h3><p>DWMediaPlayer重载了MediaPlayer的setOnErrorListener()方法，如果需要在应用中提示错误信息，可调用此方法设置OnErrorListener。具体实现方式如下:</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n113" mdtype="fences">player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+</pre><h2><a name='header-n109' class='md-header-anchor '></a>4.21 弹幕功能</h2><p>发送弹幕。</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n111" mdtype="fences" style="break-inside: unset;">    /**
+     * @param videoId             视频ID
+     * @param danmuText           弹幕文字
+     * @param currentPosition     发送弹幕时的视频播放位置
+     * @param danmuColor          弹幕颜色（格式如：0xffffff）
+     * @param onSendDanmuListener 发送结果
+     */
+player.sendDanmu(videoId, danmuText, currentPosition, danmuColor, new OnSendDanmuListener() {
+        @Override
+        public void onSuccess() {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    isCanSendDanmu = false;
+                    sendDanmuInterval = 5;
+                    addDanmu(danmuText, danmuColor, currentPosition, true);
+                }
+            });
+        }
+
+        @Override
+        public void onFail(final String msg) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    MultiUtils.showToast(activity, "发送弹幕失败：" + msg);
+                }
+            });
+        } 
+});    
+</pre><p>获取弹幕数据。</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n113" mdtype="fences" style="break-inside: unset;">    /**
+     * @param videoId  视频ID
+     * @param sec      段号
+     *每隔1分钟调用1次，段号递增
+     */
+player.getDanmuList(videoId, sec);
+
+//查询弹幕结果
+player.setOnDanmuListListener(new OnDanmuListListener() {
+             /**
+              * @param danmuInfos  弹幕信息
+              *  danmuInfo组成字段:
+              *  content：字幕内容 fc：字幕颜色，格式如：0xffffff
+              *  pt:字幕相对于视频出现的时间
+              */
+            @Override
+            public void onSuccess(final ArrayList&lt;DanmuInfo&gt; danmuInfos) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        
+                    }
+                });
+            }
+
+            @Override
+            public void onFail(String msg) {
+                
+            }
+});
+</pre><p>弹幕功能的演示请参考Demo。</p><h2><a name='header-n116' class='md-header-anchor '></a>4.22 错误处理</h2><p>错误信息有两种，一种是播放器触发的错误，另一种是获得场景视频自定义的错误。</p><h3><a name='header-n118' class='md-header-anchor '></a>4.22.1 监听播放器的错误事件</h3><p>DWMediaPlayer重载了MediaPlayer的setOnErrorListener()方法，如果需要在应用中提示错误信息，可调用此方法设置OnErrorListener。具体实现方式如下:</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n120" mdtype="fences">player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         //在这里进行错误处理
         return true;
     }
 });
-</pre><h3><a name='header-n114' class='md-header-anchor '></a>4.21.2 监听获得场景视频自定义的错误事件</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n115" mdtype="fences">player.setOnDreamWinErrorListener(new OnDreamWinErrorListener() {
+</pre><h3><a name='header-n121' class='md-header-anchor '></a>4.22.2 监听获得场景视频自定义的错误事件</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n122" mdtype="fences">player.setOnDreamWinErrorListener(new OnDreamWinErrorListener() {
     @Override
     public void onPlayError(HuodeException e) {
         //在这里进行错误处理
     }
 });
-</pre><h2><a name='header-n117' class='md-header-anchor '></a>4.22 错误码</h2><h3><a name='header-n118' class='md-header-anchor '></a>4.22.1 HuodeException自定义的错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n119" mdtype="fences" style="break-inside: unset;">101:无播放节点 
+</pre><h2><a name='header-n124' class='md-header-anchor '></a>4.23 错误码</h2><h3><a name='header-n125' class='md-header-anchor '></a>4.23.1 HuodeException自定义的错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n126" mdtype="fences" style="break-inside: unset;">101:无播放节点 
 102:视频无播放节点 
 103:音频无播放节点 
 104：授权验证失败
@@ -460,7 +520,7 @@ private void useSmallWindowPlay() {
 503：DRM加密版本错误
 504：源文件不存在
 505：加载数据失败
-</pre><h3><a name='header-n120' class='md-header-anchor '></a>4.22.2 ijkplayer错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n121" mdtype="fences" style="break-inside: unset;">int MEDIA_INFO_UNKNOWN = 1;//未知信息
+</pre><h3><a name='header-n127' class='md-header-anchor '></a>4.23.2 ijkplayer错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n128" mdtype="fences" style="break-inside: unset;">int MEDIA_INFO_UNKNOWN = 1;//未知信息
 int MEDIA_INFO_STARTED_AS_NEXT = 2;//播放下一条
 int MEDIA_INFO_VIDEO_RENDERING_START = 3;//视频开始整备中，准备渲染
 int MEDIA_INFO_VIDEO_TRACK_LAGGING = 700;//视频日志跟踪

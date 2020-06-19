@@ -16,7 +16,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-import com.bokecc.sdk.mobile.util.HttpUtil;
 import com.bokecc.vod.adapter.PlayVideoAdapter;
 import com.bokecc.vod.data.DataSet;
 import com.bokecc.vod.data.DataUtil;
@@ -85,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
         //请求数据
         initData();
+
     }
 
     private void initView() {
@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void closeSmallWindow() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            sendBroadcast(new Intent("com.bokecc.vod.play.SMALL_WINDOW").putExtra("control",3));
+            sendBroadcast(new Intent("com.bokecc.vod.play.SMALL_WINDOW").putExtra("control", 3));
         }
     }
 }
