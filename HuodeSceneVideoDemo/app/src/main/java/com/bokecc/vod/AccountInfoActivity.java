@@ -18,7 +18,6 @@ public class AccountInfoActivity extends AppCompatActivity {
     private EditText et_verification_code;
     private ImageView iv_back;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

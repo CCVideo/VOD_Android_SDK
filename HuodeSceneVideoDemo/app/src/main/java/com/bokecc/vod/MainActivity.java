@@ -293,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void closeSmallWindow() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            sendBroadcast(new Intent("com.bokecc.vod.play.SMALL_WINDOW").putExtra("control", 3));
+            sendBroadcast(new Intent("com.bokecc.vod.play.SMALL_WINDOW").putExtra("control",3));
         }
     }
 }

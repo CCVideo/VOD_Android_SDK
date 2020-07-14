@@ -19,8 +19,9 @@ allprojects {
     repositories {
         google()
         jcenter()
-        //必须配置
+        //以下两个必须配置
         maven {url 'https://dl.bintray.com/bokecc/maven'}
+        maven {url 'http://nexus-app.bokecc.com/repository/sdk-group/'}
         //使用投屏功能时添加此配置，不使用不需要
         maven { url 'http://4thline.org/m2'}
     }

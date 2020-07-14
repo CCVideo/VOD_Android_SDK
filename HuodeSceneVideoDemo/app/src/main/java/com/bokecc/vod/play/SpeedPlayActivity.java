@@ -3186,6 +3186,8 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         player.pause();
         player.stop();
         player.reset();
+        //setClientId()方法在setVideoPlayInfo()前调用，可以通过此方法设置用户标识，出问题时方便排查
+        player.setClientId("");
         player.setVideoPlayInfo(videoId, ConfigUtil.USERID, ConfigUtil.API_KEY, verificationCode, activity);
         player.setSurface(playSurface);
         HuodeApplication.getDRMServer().resetLocalPlay();

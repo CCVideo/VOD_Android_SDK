@@ -2366,6 +2366,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         player.pause();
         player.stop();
         player.reset();
+        player.setClientId("");
         player.setVideoPlayInfo(videoId, ConfigUtil.USERID, ConfigUtil.API_KEY, verificationCode, activity);
         HuodeApplication.getDRMServer().resetLocalPlay();
         player.setAudioPlay(isAudioMode);
