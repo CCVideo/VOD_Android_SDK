@@ -36,7 +36,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="15sp"
-            android:textColor="@android:color/black"
+            android:textColor="@color/videoTitle"
             android:gravity="start"
             android:layout_marginTop="5dp"/>
 
@@ -45,7 +45,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="15sp"
-            android:textColor="@android:color/black"
+            android:textColor="@color/videoTitle"
             android:gravity="start"
             android:layout_marginTop="10dp"/>
 

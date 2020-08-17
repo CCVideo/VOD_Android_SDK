@@ -2838,11 +2838,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             @Override
             public void run() {
 
-                if (!isBackupPlay && !isLocalPlay && isFirstBuffer) {
-                    startBackupPlay();
-                    return;
-                }
-
                 netWorkStatus = MultiUtils.getNetWorkStatus(activity);
                 if (netWorkStatus == 0) {
                     isNoNetPause = true;
@@ -2901,6 +2896,12 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                         break;
                     case 104:
                         tv_error_info.setText("授权验证失败（" + e.getIntErrorCode() + "）");
+                        showPlayErrorView();
+                        hideOtherOperations();
+                        tv_operation.setVisibility(View.GONE);
+                        break;
+                    default:
+                        tv_error_info.setText("播放异常（" + e.getIntErrorCode() + "）");
                         showPlayErrorView();
                         hideOtherOperations();
                         tv_operation.setVisibility(View.GONE);
@@ -2984,20 +2985,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                 hidePlayErrorView();
             }
             playVideoOrAudio(isAudioMode, false);
-        }
-    }
-
-    private void startBackupPlay() {
-        player.setBackupPlay(true);
-        isBackupPlay = true;
-        player.reset();
-        try {
-            if (playSurface != null) {
-                player.setSurface(playSurface);
-            }
-            player.prepareAsync();
-        } catch (Exception e) {
-
         }
     }
 
@@ -3132,8 +3119,6 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
 
         sv_subtitle.resetSubtitle();
 
-        //重置播放线路相关
-        player.setBackupPlay(false);
         isFirstBuffer = true;
         isBackupPlay = false;
     }
@@ -3331,11 +3316,9 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
             } else {
                 phoneWidth = screenWidth;
             }
-            if (videoWidth >= phoneWidth) {
-                portVideoWidth = phoneWidth;
-                portVideoHeight = portVideoWidth * videoHeight / videoWidth;
-            }
 
+            portVideoWidth = phoneWidth;
+            portVideoHeight = portVideoWidth * videoHeight / videoWidth;
             videoParams.height = portVideoHeight;
             videoParams.width = portVideoWidth;
             tv_video.setLayoutParams(videoParams);

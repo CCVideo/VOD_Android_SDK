@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
+    android:background="@color/layoutBac"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
@@ -23,7 +23,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="个人中心"
-            android:textColor="@android:color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="20sp" />
 
     </RelativeLayout>
@@ -51,7 +51,7 @@
             android:layout_width="80dp"
             android:layout_height="wrap_content"
             android:text="User ID"
-            android:textColor="@color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="18sp" />
 
         <TextView
@@ -59,7 +59,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="@color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="18sp" />
     </LinearLayout>
 
@@ -76,7 +76,7 @@
             android:layout_width="80dp"
             android:layout_height="wrap_content"
             android:text="API Key"
-            android:textColor="@color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="18sp" />
 
         <TextView
@@ -84,7 +84,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:textColor="@color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="18sp" />
 
     </LinearLayout>
@@ -112,7 +112,7 @@
         android:paddingTop="5dp"
         android:paddingRight="15dp"
         android:paddingBottom="5dp"
-        android:textColor="@color/black"
+        android:textColor="@color/videoTitle"
         android:textColorHint="@color/orange"
         android:textSize="18sp" />
 

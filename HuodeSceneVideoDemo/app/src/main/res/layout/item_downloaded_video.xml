@@ -2,7 +2,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/white"
+    android:background="@color/layoutBac"
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:padding="10dp">
@@ -24,7 +24,7 @@
             android:id="@+id/downloaded_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="16sp" />
 
         <TextView
@@ -36,7 +36,7 @@
             android:id="@+id/tv_filesize"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="@color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="15sp" />
 
     </LinearLayout>

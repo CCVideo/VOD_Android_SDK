@@ -2,6 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/layoutBac"
     android:fitsSystemWindows="true">
 
     <LinearLayout
@@ -90,7 +91,7 @@
             android:layout_marginLeft="10dp"
             android:layout_marginTop="10dp"
             android:text="课程目录"
-            android:textColor="@android:color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="15sp"
             android:textStyle="bold" />
 

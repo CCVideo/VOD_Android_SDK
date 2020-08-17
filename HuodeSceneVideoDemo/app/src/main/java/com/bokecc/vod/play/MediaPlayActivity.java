@@ -2623,6 +2623,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                     player.reset();
                     player.setSurface(playSurface);
                     HuodeApplication.getDRMServer().reset();
+                    isPrepared = false;
                     player.setDefaultDefinition(definition);
                     player.setDefinition(activity, definition);
                 } catch (IOException e) {
@@ -2815,14 +2816,6 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                if (what == -38) {
-                    return;
-                }
-                if (!isBackupPlay && !isLocalPlay && isFirstBuffer) {
-                    startBackupPlay();
-                    return;
-                }
-
                 netWorkStatus = MultiUtils.getNetWorkStatus(activity);
                 if (netWorkStatus == 0) {
                     isNoNetPause = true;
@@ -2876,6 +2869,12 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                         break;
                     case 104:
                         tv_error_info.setText("授权验证失败（" + e.getIntErrorCode() + "）");
+                        showPlayErrorView();
+                        hideOtherOperations();
+                        tv_operation.setVisibility(View.GONE);
+                        break;
+                    default:
+                        tv_error_info.setText("播放异常（" + e.getIntErrorCode() + "）");
                         showPlayErrorView();
                         hideOtherOperations();
                         tv_operation.setVisibility(View.GONE);
@@ -2960,21 +2959,6 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             }
             playVideoOrAudio(isAudioMode, false);
         }
-    }
-
-    private void startBackupPlay() {
-        player.setBackupPlay(true);
-        isBackupPlay = true;
-        player.reset();
-        try {
-            if (playSurface != null) {
-                player.setSurface(playSurface);
-            }
-            player.prepareAsync();
-        } catch (Exception e) {
-
-        }
-
     }
 
     private void showIsUseMobileNetwork() {
@@ -3107,8 +3091,6 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
         isVideoShowVisitorInfoDialog = false;
 
         sv_subtitle.resetSubtitle();
-        //重置播放线路相关
-        player.setBackupPlay(false);
         isFirstBuffer = true;
         isBackupPlay = false;
     }
@@ -3306,11 +3288,8 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
             } else {
                 phoneWidth = screenWidth;
             }
-            if (videoWidth >= phoneWidth) {
-                portVideoWidth = phoneWidth;
-                portVideoHeight = portVideoWidth * videoHeight / videoWidth;
-            }
-
+            portVideoWidth = phoneWidth;
+            portVideoHeight = portVideoWidth * videoHeight / videoWidth;
             videoParams.height = portVideoHeight;
             videoParams.width = portVideoWidth;
             tv_video.setLayoutParams(videoParams);
@@ -3346,74 +3325,76 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        currentPosition = player.getCurrentPosition();
-                        tv_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr(currentPosition));
-                        tv_portrait_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr(currentPosition));
-                        sb_progress.setProgress((int) currentPosition, (int) videoDuration);
-                        sb_portrait_progress.setProgress((int) currentPosition, (int) videoDuration);
-                        //更新字幕
-                        sv_subtitle.refreshSubTitle(currentPosition);
-                        //展示问答题
-                        if (isQuestionTimePoint((int) currentPosition) && (qaView == null || !qaView.isPopupWindowShown())) {
-                            playOrPauseVideo();
-                            showQuestion();
-                        }
-                        //展示访客信息对话框
-                        if (currentPosition > showVisitorTime && isShowVisitorInfoDialog && !isVideoShowVisitorInfoDialog) {
-                            player.seekTo((int) showVisitorTime);
-                            showVisitorInfoDialog();
-                        } else {
-                            showVisitorInfoDialog();
-                        }
-
-                        //展示课堂练习
-                        if (isShowExercise((int) currentPosition)) {
-                            if (exeDialog != null && exeDialog.isShowing()) {
-                                return;
+                        if (isPrepared) {
+                            currentPosition = player.getCurrentPosition();
+                            tv_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr(currentPosition));
+                            tv_portrait_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr(currentPosition));
+                            sb_progress.setProgress((int) currentPosition, (int) videoDuration);
+                            sb_portrait_progress.setProgress((int) currentPosition, (int) videoDuration);
+                            //更新字幕
+                            sv_subtitle.refreshSubTitle(currentPosition);
+                            //展示问答题
+                            if (isQuestionTimePoint((int) currentPosition) && (qaView == null || !qaView.isPopupWindowShown())) {
+                                playOrPauseVideo();
+                                showQuestion();
                             }
-                            if (doExerciseDialog != null && doExerciseDialog.isShowing()) {
-                                return;
+                            //展示访客信息对话框
+                            if (currentPosition > showVisitorTime && isShowVisitorInfoDialog && !isVideoShowVisitorInfoDialog) {
+                                player.seekTo((int) showVisitorTime);
+                                showVisitorInfoDialog();
+                            } else {
+                                showVisitorInfoDialog();
                             }
-                            if (!isFullScreen) {
-                                setLandScape();
+
+                            //展示课堂练习
+                            if (isShowExercise((int) currentPosition)) {
+                                if (exeDialog != null && exeDialog.isShowing()) {
+                                    return;
+                                }
+                                if (doExerciseDialog != null && doExerciseDialog.isShowing()) {
+                                    return;
+                                }
+                                if (!isFullScreen) {
+                                    setLandScape();
+                                }
+                                if (isShowConfirmExerciseDialog) {
+                                    showExercise();
+                                    return;
+                                }
+                                showDoExerciseDialog(true);
                             }
-                            if (isShowConfirmExerciseDialog) {
-                                showExercise();
-                                return;
+
+                            //如果大于试看时长就暂停
+                            if (isAllowPlayWholeVideo == 0 && currentPosition > freeWatchTime * 1000) {
+                                player.pause();
+                                tv_watch_tip.setVisibility(View.GONE);
+                                ll_pre_watch_over.setVisibility(View.VISIBLE);
+                                hideViews();
                             }
-                            showDoExerciseDialog(true);
-                        }
 
-                        //如果大于试看时长就暂停
-                        if (isAllowPlayWholeVideo == 0 && currentPosition > freeWatchTime * 1000) {
-                            player.pause();
-                            tv_watch_tip.setVisibility(View.GONE);
-                            ll_pre_watch_over.setVisibility(View.VISIBLE);
-                            hideViews();
-                        }
-
-                        if (qaView != null && qaView.isPopupWindowShown()) {
-                            player.pauseWithoutAnalyse(); //针对有的手机上无法暂停，反复调用pause()
-                        }
-
-                        //请求弹幕数据，间隔1分钟
-                        currentMinutePos = (int) (currentPosition / getDanmuInterval);
-                        if (currentMinutePos != danmuSec && isDanmuOn) {
-                            player.getDanmuList(videoId, (danmuSec + 1));
-                            danmuSec = currentMinutePos;
-                        }
-
-                        //发送弹幕间隔
-                        if (sendDanmuInterval >= 0 && !isCanSendDanmu) {
-                            tv_input_danmu.setText(sendDanmuInterval + "s");
-                            tv_portrait_input_danmu.setText(sendDanmuInterval + "s");
-
-                            if (sendDanmuInterval == 0) {
-                                isCanSendDanmu = true;
-                                tv_input_danmu.setText("弹幕走一波");
-                                tv_portrait_input_danmu.setText("点我发弹幕");
+                            if (qaView != null && qaView.isPopupWindowShown()) {
+                                player.pauseWithoutAnalyse(); //针对有的手机上无法暂停，反复调用pause()
                             }
-                            sendDanmuInterval--;
+
+                            //请求弹幕数据，间隔1分钟
+                            currentMinutePos = (int) (currentPosition / getDanmuInterval);
+                            if (currentMinutePos != danmuSec && isDanmuOn) {
+                                player.getDanmuList(videoId, (danmuSec + 1));
+                                danmuSec = currentMinutePos;
+                            }
+
+                            //发送弹幕间隔
+                            if (sendDanmuInterval >= 0 && !isCanSendDanmu) {
+                                tv_input_danmu.setText(sendDanmuInterval + "s");
+                                tv_portrait_input_danmu.setText(sendDanmuInterval + "s");
+
+                                if (sendDanmuInterval == 0) {
+                                    isCanSendDanmu = true;
+                                    tv_input_danmu.setText("弹幕走一波");
+                                    tv_portrait_input_danmu.setText("点我发弹幕");
+                                }
+                                sendDanmuInterval--;
+                            }
                         }
                     }
                 });
@@ -3698,6 +3679,7 @@ public class MediaPlayActivity extends Activity implements View.OnClickListener,
                 });
             }
         }
+
     }
 
     //QA问答

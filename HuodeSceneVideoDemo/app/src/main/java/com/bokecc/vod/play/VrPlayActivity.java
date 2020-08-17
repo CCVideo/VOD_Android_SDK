@@ -2032,11 +2032,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     return;
                 }
 
-                if (!isBackupPlay && !isLocalPlay && isFirstBuffer) {
-                    startBackupPlay();
-                    return;
-                }
-
                 netWorkStatus = MultiUtils.getNetWorkStatus(activity);
                 if (netWorkStatus == 0) {
                     isNoNetPause = true;
@@ -2181,18 +2176,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
     }
 
-    private void startBackupPlay() {
-        player.setBackupPlay(true);
-        isBackupPlay = true;
-        player.reset();
-        try {
-            player.prepareAsync();
-        } catch (Exception e) {
-
-        }
-
-    }
-
     private void showIsUseMobileNetwork() {
         if (isLocalPlay) {
             return;
@@ -2311,9 +2294,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         isVideoShowVisitorInfoDialog = false;
 
         sv_subtitle.resetSubtitle();
-
-        //重置播放线路相关
-        player.setBackupPlay(false);
         isFirstBuffer = true;
         isBackupPlay = false;
     }

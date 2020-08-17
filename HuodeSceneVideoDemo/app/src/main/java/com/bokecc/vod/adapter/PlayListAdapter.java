@@ -73,7 +73,7 @@ public class PlayListAdapter extends BaseAdapter {
             if (videoInfo.isSelected()){
                 holder.tv_video_title.setTextColor(context.getResources().getColor(R.color.orange));
             }else {
-                holder.tv_video_title.setTextColor(context.getResources().getColor(R.color.black));
+                holder.tv_video_title.setTextColor(context.getResources().getColor(R.color.videoTitle));
             }
         }
         return convertView;

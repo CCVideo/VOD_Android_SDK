@@ -1,7 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
+    android:background="@color/layoutBac"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="填写视频信息"
-            android:textColor="@android:color/black"
+            android:textColor="@color/videoTitle"
             android:textSize="20sp" />
 
         <TextView
@@ -66,7 +66,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:text="User ID"
-                android:textColor="@color/black"
+                android:textColor="@color/videoTitle"
                 android:textSize="15sp" />
 
             <TextView
@@ -84,7 +84,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:text="API Key"
-                android:textColor="@color/black"
+                android:textColor="@color/videoTitle"
                 android:textSize="15sp" />
 
             <TextView
@@ -102,7 +102,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:text="请输入视频标题"
-                android:textColor="@color/black"
+                android:textColor="@color/videoTitle"
                 android:textSize="15sp" />
 
             <EditText
@@ -120,7 +120,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:text="请输入视频简介"
-                android:textColor="@color/black"
+                android:textColor="@color/videoTitle"
                 android:textSize="15sp" />
 
             <EditText
@@ -138,7 +138,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
                 android:text="请选择压缩等级"
-                android:textColor="@color/black"
+                android:textColor="@color/videoTitle"
                 android:textSize="15sp" />
 
             <TextView
