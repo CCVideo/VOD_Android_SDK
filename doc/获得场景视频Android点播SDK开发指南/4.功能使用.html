@@ -441,20 +441,33 @@ player.setOnDanmuListListener(new OnDanmuListListener() {
 });
 </pre><p>弹幕功能的演示请参考Demo。</p><h2><a name='header-n115' class='md-header-anchor '></a>4.22 设置用户标识</h2><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n116" mdtype="fences">//setClientId()方法在setVideoPlayInfo()前调用，可以通过此方法设置用户标识，出问题时方便排查
 player.setClientId("");
-</pre><h2><a name='header-n117' class='md-header-anchor '></a>4.23 错误处理</h2><p>错误信息有两种，一种是播放器触发的错误，另一种是获得场景视频自定义的错误。</p><h3><a name='header-n119' class='md-header-anchor '></a>4.23.1 监听播放器的错误事件</h3><p>DWMediaPlayer重载了MediaPlayer的setOnErrorListener()方法，如果需要在应用中提示错误信息，可调用此方法设置OnErrorListener。具体实现方式如下:</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n121" mdtype="fences">player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+</pre><h2><a name='header-n117' class='md-header-anchor '></a>4.23 动感视频功能</h2><p>支持在关键点震动提醒，详情参考Demo。</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n119" mdtype="fences">//添加震动权限
+&lt;uses-permission android:name="android.permission.VIBRATE"/&gt;
+</pre><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n120" mdtype="fences">Vibrator vibrator = vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+if (vibrator.hasVibrator() &amp;&amp; isDynamicVideo){
+    //震动时长，单位毫秒
+    vibrator.vibrate(500);
+}
+
+//不用震动的时候，调用cancel()取消
+if (vibrator != null) {
+    vibrator.cancel();
+}
+
+</pre><h2><a name='header-n121' class='md-header-anchor '></a>4.24 错误处理</h2><p>错误信息有两种，一种是播放器触发的错误，另一种是获得场景视频自定义的错误。</p><h3><a name='header-n123' class='md-header-anchor '></a>4.24.1 监听播放器的错误事件</h3><p>DWMediaPlayer重载了MediaPlayer的setOnErrorListener()方法，如果需要在应用中提示错误信息，可调用此方法设置OnErrorListener。具体实现方式如下:</p><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n125" mdtype="fences">player.setOnErrorListener(new MediaPlayer.OnErrorListener() {
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         //在这里进行错误处理
         return true;
     }
 });
-</pre><h3><a name='header-n122' class='md-header-anchor '></a>4.23.2 监听获得场景视频自定义的错误事件</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n123" mdtype="fences">player.setOnDreamWinErrorListener(new OnDreamWinErrorListener() {
+</pre><h3><a name='header-n126' class='md-header-anchor '></a>4.24.2 监听获得场景视频自定义的错误事件</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n127" mdtype="fences">player.setOnDreamWinErrorListener(new OnDreamWinErrorListener() {
     @Override
     public void onPlayError(HuodeException e) {
         //在这里进行错误处理
     }
 });
-</pre><h2><a name='header-n125' class='md-header-anchor '></a>4.24 错误码</h2><h3><a name='header-n126' class='md-header-anchor '></a>4.24.1 HuodeException自定义的错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n127" mdtype="fences" style="break-inside: unset;">101:无播放节点 
+</pre><h2><a name='header-n129' class='md-header-anchor '></a>4.25 错误码</h2><h3><a name='header-n130' class='md-header-anchor '></a>4.25.1 HuodeException自定义的错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n131" mdtype="fences" style="break-inside: unset;">101:无播放节点 
 102:视频无播放节点 
 103:音频无播放节点 
 104：授权验证失败
@@ -522,7 +535,7 @@ player.setClientId("");
 503：DRM加密版本错误
 504：源文件不存在
 505：加载数据失败
-</pre><h3><a name='header-n128' class='md-header-anchor '></a>4.24.2 ijkplayer错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n129" mdtype="fences" style="break-inside: unset;">int MEDIA_INFO_UNKNOWN = 1;//未知信息
+</pre><h3><a name='header-n132' class='md-header-anchor '></a>4.25.2 ijkplayer错误码</h3><pre spellcheck="false" class="md-fences mock-cm md-end-block" lang="" contenteditable="false" cid="n133" mdtype="fences" style="break-inside: unset;">int MEDIA_INFO_UNKNOWN = 1;//未知信息
 int MEDIA_INFO_STARTED_AS_NEXT = 2;//播放下一条
 int MEDIA_INFO_VIDEO_RENDERING_START = 3;//视频开始整备中，准备渲染
 int MEDIA_INFO_VIDEO_TRACK_LAGGING = 700;//视频日志跟踪

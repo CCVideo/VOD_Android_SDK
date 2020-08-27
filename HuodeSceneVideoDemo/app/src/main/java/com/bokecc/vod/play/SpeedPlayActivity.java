@@ -33,6 +33,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Rational;
@@ -103,6 +104,7 @@ import com.bokecc.vod.data.Exercise;
 import com.bokecc.vod.data.HuodeVideoInfo;
 import com.bokecc.vod.data.ObjectBox;
 import com.bokecc.vod.data.Question;
+import com.bokecc.vod.data.VibrationInfo;
 import com.bokecc.vod.data.VideoPosition;
 import com.bokecc.vod.data.VideoPositionDBHelper;
 import com.bokecc.vod.data.VisitorInfo;
@@ -393,6 +395,11 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
     private boolean isDanmuOn = true, isCanSendDanmu = true, isPlayAfterSendDanmu = true;
     private RelativeLayout rl_danmu;
     private int sendDanmuInterval = 5;
+
+    //动感视频
+    private List<VibrationInfo> vibrationInfos;
+    private Vibrator vibrator;
+    private boolean isDynamicVideo;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -1144,10 +1151,17 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         });
 
         //获得视频打点信息
+        vibrationInfos = new ArrayList<>();
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         player.setOnHotspotListener(new OnHotspotListener() {
             @Override
             public void onHotspots(TreeMap<Integer, String> hotspotMap) {
                 hotSpotDatas = hotspotMap;
+                if (hotspotMap.size() > 0) {
+                    for (Map.Entry<Integer, String> entry : hotspotMap.entrySet()) {
+                        vibrationInfos.add(new VibrationInfo(entry.getKey()));
+                    }
+                }
             }
         });
         // DRM加密播放
@@ -3116,6 +3130,10 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         freeWatchOverMsg = "";
         //重置视频是否展示过访客信息
         isVideoShowVisitorInfoDialog = false;
+        //重置震动信息
+        if (vibrationInfos!=null){
+            vibrationInfos.clear();
+        }
 
         sv_subtitle.resetSubtitle();
 
@@ -3421,6 +3439,29 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
                                 tv_portrait_input_danmu.setText("点我发弹幕");
                             }
                             sendDanmuInterval--;
+                        }
+
+                        //震动
+                        isDynamicVideo = MultiUtils.getIsDynamicVideo();
+                        for (int i = 0; i < vibrationInfos.size(); i++) {
+                            VibrationInfo vibrationInfo = vibrationInfos.get(i);
+                            Integer vibratePosition = vibrationInfo.getVibratePosition();
+                            if (vibratePosition == null) {
+                                break;
+                            }
+                            int msVibratePosition = vibratePosition * 1000;
+                            if (currentPosition > msVibratePosition && (currentPosition - msVibratePosition) < 1000) {
+                                if (vibrator.hasVibrator() && isDynamicVideo) {
+                                    if (isFullScreen) {
+                                        MultiUtils.showToast(activity, "前方重点预警");
+                                    } else {
+                                        MultiUtils.showTopToast(activity, "前方重点预警");
+                                    }
+                                    //震动时长，单位毫秒
+                                    vibrator.vibrate(500);
+                                }
+                                break;
+                            }
                         }
 
                     }
@@ -3993,6 +4034,9 @@ public class SpeedPlayActivity extends Activity implements View.OnClickListener,
         }
 
         sensorManager.unregisterListener(this);
+        if (vibrator != null) {
+            vibrator.cancel();
+        }
     }
 
     //返回事件监听

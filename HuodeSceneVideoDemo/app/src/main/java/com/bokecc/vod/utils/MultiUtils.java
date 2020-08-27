@@ -27,6 +27,7 @@ import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -75,6 +76,20 @@ public class MultiUtils {
             });
         }
 
+    }
+
+    public static void showTopToast(Activity activity, final String content) {
+        if (activity != null && !activity.isFinishing()) {
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast toast = Toast.makeText(HuodeApplication.getContext(), content, Toast.LENGTH_SHORT);
+                    int yOffset = dipToPx(HuodeApplication.getContext(), 100);
+                    toast.setGravity(Gravity.TOP, 0, yOffset);
+                    toast.show();
+                }
+            });
+        }
     }
 
     public static void setStatusBarColor(Activity activity, int color, boolean isDarkStatusBar) {
@@ -209,6 +224,15 @@ public class MultiUtils {
     public static boolean getIsReadExerciseGuide() {
         boolean isReadExerciseGuide = HuodeApplication.getSp().getBoolean("isReadExerciseGuide", false);
         return isReadExerciseGuide;
+    }
+
+    public static void setIsDynamicVideo(boolean isDynamicVideo) {
+        HuodeApplication.getSp().edit().putBoolean("isDynamicVideo", isDynamicVideo).commit();
+    }
+
+    public static boolean getIsDynamicVideo() {
+        boolean isDynamicVideo = HuodeApplication.getSp().getBoolean("isDynamicVideo", true);
+        return isDynamicVideo;
     }
 
     //    获得输入框内容

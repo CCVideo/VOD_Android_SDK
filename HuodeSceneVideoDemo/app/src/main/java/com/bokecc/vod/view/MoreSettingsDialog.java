@@ -20,6 +20,7 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.bokecc.sdk.mobile.util.HttpUtil;
 import com.bokecc.vod.R;
 import com.bokecc.vod.inter.MoreSettings;
 import com.bokecc.vod.utils.MultiUtils;
@@ -30,7 +31,7 @@ public class MoreSettingsDialog extends Dialog {
     private int currentVideoSizePos, selectedSubtitle, currentBrightness;
     private String firstSubName, secondSubName;
     private AudioManager audioManager;
-    private boolean isAudioMode;
+    private boolean isAudioMode, isDynamicVideo;
 
     public MoreSettingsDialog(Context context, boolean isAudioMode, int currentVideoSizePos, int selectedSubtitle,
                               String firstSubName, String secondSubName, int currentBrightness, MoreSettings moreSettings) {
@@ -78,6 +79,8 @@ public class MoreSettingsDialog extends Dialog {
         TextView tv_play_mode = view.findViewById(R.id.tv_play_mode);
         TextView tv_video_size = view.findViewById(R.id.tv_video_size);
         TextView tv_subtitle = view.findViewById(R.id.tv_subtitle);
+        LinearLayout ll_dynamic_video = view.findViewById(R.id.ll_dynamic_video);
+        final ImageView iv_dynamic_video = view.findViewById(R.id.iv_dynamic_video);
         if (isAudioMode) {
             iv_switch_play_mode.setImageResource(R.mipmap.iv_video_mode_big);
             tv_play_mode.setText("视频播放");
@@ -100,7 +103,7 @@ public class MoreSettingsDialog extends Dialog {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             ll_small_window_play.setVisibility(View.VISIBLE);
-        }else {
+        } else {
             ll_small_window_play.setVisibility(View.GONE);
         }
 
@@ -291,13 +294,33 @@ public class MoreSettingsDialog extends Dialog {
             }
         });
 
+        isDynamicVideo = MultiUtils.getIsDynamicVideo();
+        if (isDynamicVideo) {
+            iv_dynamic_video.setImageResource(R.mipmap.iv_dynamic_video_on);
+        } else {
+            iv_dynamic_video.setImageResource(R.mipmap.iv_dynamic_video_off);
+        }
+        ll_dynamic_video.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (isDynamicVideo) {
+                    MultiUtils.setIsDynamicVideo(false);
+                    iv_dynamic_video.setImageResource(R.mipmap.iv_dynamic_video_off);
+                } else {
+                    MultiUtils.setIsDynamicVideo(true);
+                    iv_dynamic_video.setImageResource(R.mipmap.iv_dynamic_video_on);
+                }
+                isDynamicVideo = !isDynamicVideo;
+            }
+        });
+
         Window dialogWindow = getWindow();
         WindowManager.LayoutParams lp = dialogWindow.getAttributes();
         DisplayMetrics d = context.getResources().getDisplayMetrics();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            lp.width = (int) (d.widthPixels * 0.65);
+        } else {
             lp.width = (int) (d.widthPixels * 0.55);
-        }else {
-            lp.width = (int) (d.widthPixels * 0.45);
         }
         lp.height = (int) (d.heightPixels * 1.0);
         dialogWindow.setAttributes(lp);
