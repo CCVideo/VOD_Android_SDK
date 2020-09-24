@@ -32,15 +32,16 @@
 
         <activity
             android:name=".play.SpeedPlayActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout"
+            android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout"
             android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustPan|stateHidden"
+            android:windowSoftInputMode="adjustPan|stateHidden|adjustResize"
             android:supportsPictureInPicture="true" />
+
         <activity
             android:name=".play.MediaPlayActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize|screenLayout"
+            android:configChanges="orientation|keyboardHidden|screenSize|smallestScreenSize|screenLayout"
             android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustPan|stateHidden"
+            android:windowSoftInputMode="adjustPan|stateHidden|adjustResize"
             android:supportsPictureInPicture="true" />
 
         <activity

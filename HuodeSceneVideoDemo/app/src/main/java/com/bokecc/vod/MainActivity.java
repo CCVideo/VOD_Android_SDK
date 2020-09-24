@@ -16,9 +16,14 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
+import com.bokecc.sdk.mobile.download.DownloadInfo;
+import com.bokecc.sdk.mobile.download.DownloadModel;
+import com.bokecc.sdk.mobile.download.DownloaderHelper;
+import com.bokecc.sdk.mobile.download.OnDownloadInfoListener;
 import com.bokecc.sdk.mobile.util.HttpUtil;
 import com.bokecc.vod.adapter.PlayVideoAdapter;
 import com.bokecc.vod.data.DataSet;
+import com.bokecc.vod.data.DataUtil;
 import com.bokecc.vod.data.HuodeVideoInfo;
 import com.bokecc.vod.download.DownloadController;
 import com.bokecc.vod.download.DownloadListActivity;
@@ -44,6 +49,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
     private HeadGridView gv_video_list;

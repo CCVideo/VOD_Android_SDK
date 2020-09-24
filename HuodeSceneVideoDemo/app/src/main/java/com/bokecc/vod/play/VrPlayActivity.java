@@ -11,7 +11,6 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
-import android.graphics.Bitmap;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -29,7 +28,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.text.TextUtils;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -62,6 +60,7 @@ import com.bokecc.projection.ProjectionUtils;
 import com.bokecc.projection.ProjectionVolumeResponse;
 import com.bokecc.sdk.mobile.ad.DWMediaAD;
 import com.bokecc.sdk.mobile.ad.DWMediaADListener;
+import com.bokecc.sdk.mobile.ad.EndADInfo;
 import com.bokecc.sdk.mobile.ad.FrontADInfo;
 import com.bokecc.sdk.mobile.ad.PauseADInfo;
 import com.bokecc.sdk.mobile.exception.HuodeException;
@@ -76,6 +75,7 @@ import com.bokecc.sdk.mobile.play.OnPlayModeListener;
 import com.bokecc.sdk.mobile.play.OnQAMsgListener;
 import com.bokecc.sdk.mobile.play.OnVisitMsgListener;
 import com.bokecc.sdk.mobile.play.PlayInfo;
+import com.bokecc.sdk.mobile.util.HttpUtil;
 import com.bokecc.vod.ConfigUtil;
 import com.bokecc.vod.HuodeApplication;
 import com.bokecc.vod.R;
@@ -109,6 +109,7 @@ import com.bokecc.vod.view.HotspotSeekBar;
 import com.bokecc.vod.view.IsUseMobileNetworkDialog;
 import com.bokecc.vod.view.LandscapeVisitorInfoDialog;
 import com.bokecc.vod.view.MoreSettingsDialog;
+import com.bokecc.vod.view.PauseVideoAdDialog;
 import com.bokecc.vod.view.PortraitVisitorInfoDialog;
 import com.bokecc.vod.view.QAView;
 import com.bokecc.vod.view.SelectDefinitionDialog;
@@ -116,6 +117,8 @@ import com.bokecc.vod.view.SelectVideoDialog;
 import com.bokecc.vod.view.ShowExeDialog;
 import com.bokecc.vod.view.SubtitleView;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.drawable.GlideDrawable;
+import com.bumptech.glide.load.resource.gif.GifDrawable;
 import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 
@@ -136,15 +139,15 @@ import java.util.TreeMap;
 
 public class VrPlayActivity extends Activity implements View.OnClickListener,
         DWMediaPlayer.OnPreparedListener, DWMediaPlayer.OnInfoListener, DWMediaPlayer.OnBufferingUpdateListener,
-        DWMediaPlayer.OnCompletionListener, DWMediaPlayer.OnErrorListener, DWMediaPlayer.OnVideoSizeChangedListener, OnDreamWinErrorListener ,SensorEventListener {
+        DWMediaPlayer.OnCompletionListener, DWMediaPlayer.OnErrorListener, DWMediaPlayer.OnVideoSizeChangedListener, OnDreamWinErrorListener, SensorEventListener {
 
     private String videoId, videoTitle, videoCover;
     private TextView tv_video_title, tv_current_time, tv_video_time, tv_play_definition,
             tv_video_select, tv_error_info, tv_operation, tv_ad_countdown, tv_skip_ad,
-            tv_know_more, tv_close_pause_ad, tv_watch_tip, tv_pre_watch_over, tvLeftTag, tvRightTag;
+            tv_know_more, tv_watch_tip, tv_pre_watch_over, tvLeftTag, tvRightTag;
     private ImageView iv_back, iv_video_full_screen, iv_next_video, iv_play_pause, iv_switch_to_audio,
             iv_more_settings, iv_lock_or_unlock, iv_ad_full_screen,
-            iv_pause_ad, iv_switch_mt, iv_switch_sd;
+            iv_pause_ad, iv_close_pause_ad, iv_switch_mt, iv_switch_sd;
     private ListView lv_play_list;
     private LinearLayout ll_load_video, ll_progress_and_fullscreen, ll_title_and_audio, ll_speed_def_select,
             ll_play_error, ll_audio_view, ll_confirm_or_cancel, ll_show_gif, ll_ad, ll_pre_watch_over, ll_rewatch;
@@ -208,21 +211,22 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     private int downloadMode = 1;
     //广告信息获取
     private DWMediaAD dwMediaAD;
-    //片头广告
-    private FrontADInfo frontADInfoData;
-    private String frontADClickUrl;
+    private String videoADClickUrl;
     //暂停广告
     private PauseADInfo pauseADInfoData;
     private String pauseAdClickUrl;
+    //片尾广告
+    private EndADInfo endADInfoData;
     //片头广告播放和点击信息
     private List<FrontADInfo.AdBean> frontAd;
-    //片头广告数量
-    private int frontAdCount = 0;
-    //当前正在播放的片头广告
-    private int frontAdPosition = 0;
     //是否正在播放片头广告、是否可以点击广告、是否已启动广告计时
-    private boolean isPlayFrontAd = false, isCanClickAd = false, isStartAdTimer = false;
+    private boolean isPlayVideoAd = false, isPlayFrontAd = false, isPlayEndAd = false,
+            isCanClickAd = false, isShowImgEndAd = false,
+            isStartAdTimer = false, isFrontVideoAd = true, isEndVideoAd = true;
     private int skipAdTime, adTime;
+    private ImageView iv_image_ad;
+    private LinearLayout ll_image_ad;
+    private PauseVideoAdDialog pauseVideoAdDialog;
     //访客信息收集
     private long showVisitorTime;
     private String visitorImageUrl, visitorJumpUrl, visitorTitle, visitorInfoId;
@@ -260,13 +264,13 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     private ImageView iv_research, iv_plus_volume, iv_minus_volume, iv_portrait_projection, iv_projection_back,
             iv_projection_screen_back;
     private Button btn_close_projection;
-    private boolean isBindService = false,isProjectionContinue = true,isGetProjectionVolume = true;
-    private Integer volumeValue=0;
+    private boolean isBindService = false, isProjectionContinue = true, isGetProjectionVolume = true;
+    private Integer volumeValue = 0;
     private boolean isProjectioning = false, isProjectioningPause = false;
     private RelativeLayout rl_projectioning;
     private ProjectionTask projectionTask;
     private LinearLayout ll_select_projection_device, ll_searching_device, ll_not_find_device, ll_connect_projection_fail,
-            ll_projection_volume,ll_projection_screen;
+            ll_projection_volume, ll_projection_screen;
     private Timer projectionTimer, searchDeviceTimer;
     private SearchDeviceTask searchDeviceTask;
     private int SEARCH_DEVICE_TIME = 8;
@@ -300,10 +304,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
     private AudioManager audioManager;
     private int currentVolume, maxVolume;
-
-    //首次加载失败启用备用线路
-    private boolean isBackupPlay = false;
-    private boolean isFirstBuffer = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -357,7 +357,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         tv_ad_countdown = findViewById(R.id.tv_ad_countdown);
         tv_skip_ad = findViewById(R.id.tv_skip_ad);
         tv_know_more = findViewById(R.id.tv_know_more);
-        tv_close_pause_ad = findViewById(R.id.tv_close_pause_ad);
+        iv_close_pause_ad = findViewById(R.id.iv_close_pause_ad);
         tv_watch_tip = findViewById(R.id.tv_watch_tip);
         tv_pre_watch_over = findViewById(R.id.tv_pre_watch_over);
         lv_play_list = findViewById(R.id.lv_play_list);
@@ -380,6 +380,8 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         ll_rewatch = findViewById(R.id.ll_rewatch);
         ll_ad = findViewById(R.id.ll_ad);
         iv_pause_ad = findViewById(R.id.iv_pause_ad);
+        iv_image_ad = findViewById(R.id.iv_image_ad);
+        ll_image_ad = findViewById(R.id.ll_image_ad);
         iv_switch_mt = findViewById(R.id.iv_switch_mt);
         iv_switch_sd = findViewById(R.id.iv_switch_sd);
         //vr
@@ -444,7 +446,8 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         iv_lock_or_unlock.setOnClickListener(this);
         iv_ad_full_screen.setOnClickListener(this);
         iv_pause_ad.setOnClickListener(this);
-        tv_close_pause_ad.setOnClickListener(this);
+        iv_image_ad.setOnClickListener(this);
+        iv_close_pause_ad.setOnClickListener(this);
         ll_rewatch.setOnClickListener(this);
         //本地播放音频
         if (!TextUtils.isEmpty(format) && format.equals(".mp3")) {
@@ -530,7 +533,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     videoCover = item.getVideoCover();
                     playIndex = position;
                     resetInfo();
-                    playVideoOrAudio(isAudioMode, true);
+                    getAdInfo();
                 }
 
             }
@@ -583,7 +586,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         if (ll_pre_watch_over.getVisibility() == View.VISIBLE) {
             return;
         }
-        if (isPlayFrontAd) {
+        if (isPlayVideoAd) {
             knowMoreFrontAdInfo();
             return;
         }
@@ -858,24 +861,78 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
     private void requestAd() {
         isPrepared = false;
-        frontAdPosition = 0;
         dwMediaAD = new DWMediaAD(dwMediaADListener, ConfigUtil.USERID, videoId);
         dwMediaAD.getFrontAD();
         dwMediaAD.getPauseAD();
+        dwMediaAD.getEndAD();
+        updatePlayingItem();
     }
 
     private DWMediaADListener dwMediaADListener = new DWMediaADListener() {
 
         @Override
-        public void onFrontAD(FrontADInfo frontADInfo) {
-            frontADInfoData = frontADInfo;
+        public void onFrontAD(final FrontADInfo frontADInfo) {
             if (frontADInfo != null && frontADInfo.getAd() != null) {
                 frontAd = frontADInfo.getAd();
-                frontAdCount = frontAd.size();
-                FrontADInfo.AdBean adBean = frontAd.get(frontAdPosition);
-                if (adBean != null) {
-                    playFrontAd(adBean);
+                FrontADInfo.AdBean adBean = frontAd.get(0);
+                isFrontVideoAd = frontADInfo.isVideo();
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        hideViews();
+                        if (frontADInfo.getCanskip() == 1) {
+                            tv_skip_ad.setVisibility(View.VISIBLE);
+                            skipAdTime = frontADInfo.getSkipTime();
+                        } else {
+                            tv_skip_ad.setVisibility(View.GONE);
+                        }
+                        adTime = frontADInfo.getTime();
+                        if (frontADInfo.getCanclick() == 1) {
+                            tv_know_more.setVisibility(View.VISIBLE);
+                        } else {
+                            tv_know_more.setVisibility(View.GONE);
+                        }
+                    }
+                });
+                if (isFrontVideoAd) {
+                    if (adBean != null) {
+                        playFrontAd(adBean);
+                    }
+                } else {
+                    if (adBean != null) {
+                        final String material = adBean.getMaterial();
+                        videoADClickUrl = adBean.getClickurl();
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (!TextUtils.isEmpty(material)) {
+                                    if (player.isPlaying()) {
+                                        player.stop();
+                                    }
+                                    ll_load_video.setVisibility(View.GONE);
+                                    ll_image_ad.setVisibility(View.VISIBLE);
+                                    Glide.with(HuodeApplication.getContext()).load(material).into(new SimpleTarget<GlideDrawable>() {
+                                        @Override
+                                        public void onResourceReady(GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
+                                            if (resource != null && resource.isAnimated()) {
+                                                resource.setLoopCount(GifDrawable.LOOP_FOREVER);
+                                                resource.start();
+                                            }
+                                            iv_image_ad.setImageDrawable(resource);
+                                            ll_ad.setVisibility(View.VISIBLE);
+                                            startAdTimer();
+                                        }
+                                    });
+                                } else {
+                                    playVideoOrAudio(isAudioMode, true);
+                                }
+
+                            }
+                        });
+
+                    }
                 }
+
             }
 
         }
@@ -883,6 +940,11 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         @Override
         public void onPauseAD(PauseADInfo pauseADInfo) {
             pauseADInfoData = pauseADInfo;
+        }
+
+        @Override
+        public void onEndAD(EndADInfo endADInfo) {
+            endADInfoData = endADInfo;
         }
 
         @Override
@@ -900,14 +962,20 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         public void onPauseADError(HuodeException e) {
 
         }
+
+        @Override
+        public void onEndADError(HuodeException e) {
+
+        }
     };
 
     //播放片头广告
     private void playFrontAd(final FrontADInfo.AdBean adBean) {
         try {
             String material = adBean.getMaterial();
-            if (!TextUtils.isEmpty(material) && (material.endsWith(".mp4") || material.endsWith(".pcm"))) {
-                frontADClickUrl = adBean.getClickurl();
+            if (!TextUtils.isEmpty(material)) {
+                videoADClickUrl = adBean.getClickurl();
+                isPlayVideoAd = true;
                 isPlayFrontAd = true;
                 player.pause();
                 player.stop();
@@ -916,32 +984,42 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 player.setDataSource(material);
                 HuodeApplication.getDRMServer().reset();
                 player.prepareAsync();
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        hideViews();
-                        if (frontADInfoData != null) {
-                            if (frontADInfoData.getCanskip() == 1) {
-                                tv_skip_ad.setVisibility(View.VISIBLE);
-                                skipAdTime = frontADInfoData.getSkipTime();
-                            } else {
-                                tv_skip_ad.setVisibility(View.GONE);
-                            }
-                            adTime = frontADInfoData.getTime();
-                            if (frontADInfoData.getCanclick() == 1) {
-                                tv_know_more.setVisibility(View.VISIBLE);
-                            } else {
-                                tv_know_more.setVisibility(View.GONE);
-                            }
-                        }
-
-                    }
-                });
             } else {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         playVideoOrAudio(isAudioMode, true);
+                    }
+                });
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    //播放片尾广告
+    private void playEndAd(final EndADInfo.AdBean adBean) {
+        try {
+            String material = adBean.getMaterial();
+            if (!TextUtils.isEmpty(material)) {
+                endADInfoData = null;
+                videoADClickUrl = adBean.getClickurl();
+                isPlayVideoAd = true;
+                isPlayEndAd = true;
+                isShowImgEndAd = false;
+                player.pause();
+                player.stop();
+                player.reset();
+                player.setVideoPlayInfo(null, null, null, null, activity);
+                player.setDataSource(material);
+                HuodeApplication.getDRMServer().reset();
+                player.prepareAsync();
+            } else {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        currentPosition = 0;
+                        playNextVideo();
                     }
                 });
             }
@@ -1175,7 +1253,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     rl_pause_ad.setVisibility(View.GONE);
                 }
                 break;
-            case R.id.tv_close_pause_ad:
+            case R.id.iv_image_ad:
+                knowMoreFrontAdInfo();
+                break;
+            case R.id.iv_close_pause_ad:
                 rl_pause_ad.setVisibility(View.GONE);
                 break;
             //重新试看
@@ -1217,7 +1298,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 ll_connect_projection_fail.setVisibility(View.GONE);
                 stopProjection();
                 projectionIsOver();
-                if (isPrepared){
+                if (isPrepared) {
                     startVideoTimer();
                 }
                 break;
@@ -1228,10 +1309,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     }
 
     private void knowMoreFrontAdInfo() {
-        if (!TextUtils.isEmpty(frontADClickUrl)) {
+        if (!TextUtils.isEmpty(videoADClickUrl)) {
             Intent intent = new Intent();
             intent.setAction("android.intent.action.VIEW");
-            Uri uri = Uri.parse(frontADClickUrl);
+            Uri uri = Uri.parse(videoADClickUrl);
             intent.setData(uri);
             startActivity(intent);
         }
@@ -1381,9 +1462,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     }
 
     private void showSelectProjectionDevice() {
-        if (isPlayVideo) {
-            playOrPauseVideo();
-        }
         isProjectionContinue = true;
         isGetProjectionVolume = true;
         if (playUrl.contains(".pcm?")) {
@@ -1428,6 +1506,15 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
             SEARCH_DEVICE_TIME = 8;
             startSearchDeviceTimer();
+        }
+
+        if (pauseVideoAdDialog != null && pauseVideoAdDialog.isShowing()) {
+            pauseVideoAdDialog.dismiss();
+            pauseVideoAdDialog = null;
+        }
+
+        if (isPlayVideo) {
+            playOrPauseVideo();
         }
     }
 
@@ -1498,7 +1585,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     iv_play_pause.setImageResource(R.mipmap.iv_pause);
                     isProjectioningPause = false;
                     tv_projection_state.setText("正在投屏播放中");
-                    if (currentPosition>0 && isProjectionContinue){
+                    if (currentPosition > 0 && isProjectionContinue) {
                         projectionPlayControl.seek((int) currentPosition, new ProjectionControlCallback() {
                             @Override
                             public void success(ProjectionIResponse response) {
@@ -1519,7 +1606,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                     projectionPlayControl.setCurrentState(ProjectionDLANPlayState.PAUSE);
                     break;
                 case STOP_ACTION:
-                    if (isPrepared){
+                    if (isPrepared) {
                         startVideoTimer();
                     }
                     projectionIsOver();
@@ -1656,7 +1743,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         projectionPlayControl.getVolume(new ProjectionControlReceiveCallback() {
             @Override
             public void receive(ProjectionIResponse response) {
-                if (isGetProjectionVolume){
+                if (isGetProjectionVolume) {
                     ProjectionVolumeResponse projectionVolumeResponse = (ProjectionVolumeResponse) response;
                     volumeValue = projectionVolumeResponse.getResponse();
                     isGetProjectionVolume = false;
@@ -1752,28 +1839,68 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             iv_play_pause.setImageResource(R.mipmap.iv_play);
             //展示暂停广告
             if (pauseADInfoData != null) {
+                if (exeDialog != null && exeDialog.isShowing()) {
+                    return;
+                }
+                if (doExerciseDialog != null && doExerciseDialog.isShowing()) {
+                    return;
+                }
+                if (qaView != null && qaView.isPopupWindowShown()) {
+                    return;
+                }
+                if (portraitVisitorInfoDialog != null && portraitVisitorInfoDialog.isShowing()) {
+                    return;
+                }
+                if (visitorInfoDialog != null && visitorInfoDialog.isShowing()) {
+                    return;
+                }
+                if (ll_select_projection_device.getVisibility() == View.VISIBLE) {
+                    return;
+                }
+                if (ll_projection_screen.getVisibility() == View.VISIBLE) {
+                    return;
+                }
+
+                boolean isPauseVideoAd = pauseADInfoData.isVideo();
                 List<PauseADInfo.AdBean> ad = pauseADInfoData.getAd();
                 if (ad != null && ad.get(0) != null) {
-                    rl_pause_ad.setVisibility(View.VISIBLE);
                     String material = ad.get(0).getMaterial();
                     pauseAdClickUrl = ad.get(0).getClickurl();
-                    Glide.with(HuodeApplication.getContext()).load(material).asBitmap().into(new SimpleTarget<Bitmap>() {
-                        @Override
-                        public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
-                            if (resource != null) {
-                                iv_pause_ad.setImageBitmap(resource);
-                                int imageWidth = resource.getWidth();
-                                int imageHeight = resource.getHeight();
-                                int screenWidth = MultiUtils.getScreenWidth(activity);
-                                int newWidth = (int) (0.6 * screenWidth);
-                                int newHeight = newWidth * imageHeight / imageWidth;
-                                ViewGroup.LayoutParams pauseAdParams = rl_pause_ad.getLayoutParams();
-                                pauseAdParams.height = newHeight;
-                                pauseAdParams.width = newWidth;
-                                rl_pause_ad.setLayoutParams(pauseAdParams);
-                            }
+                    if (isPauseVideoAd) {
+                        if (!TextUtils.isEmpty(material)) {
+                            pauseVideoAdDialog = new PauseVideoAdDialog(activity, isFullScreen, material, pauseAdClickUrl);
+                            pauseVideoAdDialog.show();
                         }
-                    });
+                    } else {
+                        if (!TextUtils.isEmpty(material)) {
+                            rl_pause_ad.setVisibility(View.VISIBLE);
+                            Glide.with(HuodeApplication.getContext()).load(material).into(new SimpleTarget<GlideDrawable>() {
+                                @Override
+                                public void onResourceReady(GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
+                                    if (resource != null) {
+                                        if (resource.isAnimated()) {
+                                            resource.setLoopCount(GifDrawable.LOOP_FOREVER);
+                                            resource.start();
+                                        }
+                                        iv_pause_ad.setImageDrawable(resource);
+                                        int intrinsicWidth = resource.getIntrinsicWidth();
+                                        int intrinsicHeight = resource.getIntrinsicHeight();
+                                        if (intrinsicWidth > 0) {
+                                            int screenWidth = MultiUtils.getScreenWidth(activity);
+                                            int newWidth = (int) (0.6 * screenWidth);
+                                            int newHeight = newWidth * intrinsicHeight / intrinsicWidth;
+                                            ViewGroup.LayoutParams pauseAdParams = rl_pause_ad.getLayoutParams();
+                                            pauseAdParams.height = newHeight;
+                                            pauseAdParams.width = newWidth;
+                                            rl_pause_ad.setLayoutParams(pauseAdParams);
+                                        }
+                                    }
+
+                                }
+                            });
+
+                        }
+                    }
 
                 }
             }
@@ -1783,6 +1910,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             iv_play_pause.setImageResource(R.mipmap.iv_pause);
             if (rl_pause_ad.getVisibility() == View.VISIBLE) {
                 rl_pause_ad.setVisibility(View.GONE);
+            }
+            if (pauseVideoAdDialog != null && pauseVideoAdDialog.isShowing()) {
+                pauseVideoAdDialog.dismiss();
+                pauseVideoAdDialog = null;
             }
         }
     }
@@ -1805,7 +1936,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 videoTitle = selectedVideoTitle;
                 videoCover = selectedVideoCover;
                 resetInfo();
-                playVideoOrAudio(isAudioMode, false);
+                getAdInfo();
             }
         });
         selectVideoDialog.show();
@@ -1822,7 +1953,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     private void showOtherOperations() {
         ll_progress_and_fullscreen.setVisibility(View.VISIBLE);
         ll_title_and_audio.setVisibility(View.VISIBLE);
-        if (player.isPlaying()){
+        if (player.isPlaying()) {
             iv_play_pause.setImageResource(R.mipmap.iv_pause);
         }
         if (isProjectioning) {
@@ -1878,18 +2009,17 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             currentDefinition = playInfo.getDefaultDefinition();
         }
         isPrepared = true;
-        isFirstBuffer = false;
         //切换清晰度续播
         if (switchDefPos > 0) {
             player.seekTo((int) switchDefPos);
             player.start();
         } else {
             if (lastPlayPosition > 0) {
-                if (isPlayFrontAd) {
+                if (isPlayVideoAd) {
                     lastPlayPosition = 0;
                 }
 
-                if (isPlayFrontAd) {
+                if (isPlayVideoAd) {
                     player.start();
                 } else {
                     //从上次播放的位置开始播放
@@ -1943,7 +2073,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             }
 
             //vr
-            if (!isPlayFrontAd) {
+            if (!isPlayVideoAd) {
                 disposeVrController();
             }
         } else {
@@ -1956,13 +2086,9 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         videoDuration = player.getDuration();
         tv_video_time.setText(MultiUtils.millsecondsToMinuteSecondStr(videoDuration));
         //如果正在播放广告
-        if (isPlayFrontAd) {
+        if (isPlayVideoAd) {
             ll_ad.setVisibility(View.VISIBLE);
             if (!isStartAdTimer) {
-                long duration = player.getDuration();
-                if ((adTime * 1000) > duration && frontAdCount == 1) {
-                    adTime = (int) (duration / 1000);
-                }
                 startAdTimer();
             }
         } else {
@@ -2233,18 +2359,82 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             finish();
             return;
         }
-        if (isPlayFrontAd) {
-            frontAdPosition++;
+
+        if (isPlayVideoAd && adTime>0){
+            player.seekTo(0);
+            player.start();
+            return;
         }
-        if (frontAdPosition < frontAdCount) {
-            FrontADInfo.AdBean adBean = frontAd.get(frontAdPosition);
-            playFrontAd(adBean);
-        } else {
-            if (!isPlayFrontAd) {
-                //播放下一个视频
-                currentPosition = 0;
-                playNextVideo();
+
+        if (isPlayFrontAd) {
+            playVIdeoAfterAd();
+            return;
+        }
+
+        if (endADInfoData != null && endADInfoData.getAd() != null) {
+            isCanClickAd = false;
+            EndADInfo.AdBean adBean = endADInfoData.getAd().get(0);
+            isEndVideoAd = endADInfoData.isVideo();
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    hideViews();
+                    if (endADInfoData.getCanskip() == 1) {
+                        tv_skip_ad.setVisibility(View.VISIBLE);
+                        skipAdTime = endADInfoData.getSkipTime();
+                    } else {
+                        tv_skip_ad.setVisibility(View.GONE);
+                    }
+                    adTime = endADInfoData.getTime();
+                    if (endADInfoData.getCanclick() == 1) {
+                        tv_know_more.setVisibility(View.VISIBLE);
+                    } else {
+                        tv_know_more.setVisibility(View.GONE);
+                    }
+                }
+            });
+            if (isEndVideoAd) {
+                if (adBean != null) {
+                    playEndAd(adBean);
+                }
+            } else {
+                if (adBean != null) {
+                    final String material = adBean.getMaterial();
+                    videoADClickUrl = adBean.getClickurl();
+                    endADInfoData = null;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!TextUtils.isEmpty(material)) {
+                                isShowImgEndAd = true;
+                                ll_load_video.setVisibility(View.GONE);
+                                ll_image_ad.setVisibility(View.VISIBLE);
+                                Glide.with(HuodeApplication.getContext()).load(material).into(new SimpleTarget<GlideDrawable>() {
+                                    @Override
+                                    public void onResourceReady(GlideDrawable resource, GlideAnimation<? super GlideDrawable> glideAnimation) {
+                                        if (resource != null && resource.isAnimated()) {
+                                            resource.setLoopCount(GifDrawable.LOOP_FOREVER);
+                                            resource.start();
+                                        }
+                                        iv_image_ad.setImageDrawable(resource);
+                                        ll_ad.setVisibility(View.VISIBLE);
+                                        startAdTimer();
+                                    }
+                                });
+                            } else {
+                                currentPosition = 0;
+                                playNextVideo();
+                            }
+
+                        }
+                    });
+
+                }
             }
+
+        } else {
+            currentPosition = 0;
+            playNextVideo();
         }
     }
 
@@ -2263,9 +2453,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
         //记录播放位置
         updateLastPlayPosition();
-        isPlayFrontAd = false;
-        isCanClickAd = false;
-        cancelAdTimer();
         getAdInfo();
     }
 
@@ -2294,8 +2481,21 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         isVideoShowVisitorInfoDialog = false;
 
         sv_subtitle.resetSubtitle();
-        isFirstBuffer = true;
-        isBackupPlay = false;
+
+        cancelAdTimer();
+        isPlayVideoAd = false;
+        isCanClickAd = false;
+        isPlayEndAd = false;
+        isShowImgEndAd = false;
+        pauseADInfoData = null;
+        endADInfoData = null;
+        if (pauseVideoAdDialog != null && pauseVideoAdDialog.isShowing()) {
+            pauseVideoAdDialog.dismiss();
+        }
+
+        ll_image_ad.setVisibility(View.GONE);
+        ll_ad.setVisibility(View.GONE);
+        rl_pause_ad.setVisibility(View.GONE);
     }
 
     /**
@@ -2352,7 +2552,11 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         player.setAudioPlay(isAudioMode);
         player.prepareAsync();
 
-        //更新播放列表正在播放项
+        updatePlayingItem();
+    }
+
+    //更新播放列表正在播放项
+    private void updatePlayingItem() {
         for (int i = 0; i < videoList.size(); i++) {
             HuodeVideoInfo videoInfo = videoList.get(i);
             if (videoInfo != null) {
@@ -2389,6 +2593,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         //设置竖屏TextureView的宽和高
         setPortVideo();
         isFullScreen = false;
+
+        if (pauseVideoAdDialog!=null && pauseVideoAdDialog.isShowing()){
+            pauseVideoAdDialog.updateView(isFullScreen);
+        }
     }
 
     //设置为全屏播放
@@ -2405,7 +2613,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             iv_switch_sd.setVisibility(View.VISIBLE);
             iv_switch_mt.setVisibility(View.VISIBLE);
         }
-        if (!isPlayFrontAd) {
+        if (!isPlayVideoAd) {
             iv_lock_or_unlock.setVisibility(View.VISIBLE);
         }
 
@@ -2428,6 +2636,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         rl_play_video.setLayoutParams(videoLayoutParams);
         setLandScapeVideo();
         isFullScreen = true;
+
+        if (pauseVideoAdDialog!=null && pauseVideoAdDialog.isShowing()){
+            pauseVideoAdDialog.updateView(isFullScreen);
+        }
     }
 
     //设置横屏TextureView的宽和高,使视频高度和屏幕宽度一致
@@ -2517,7 +2729,6 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                         sv_subtitle.refreshSubTitle(currentPosition);
                         //展示问答题
                         if (isQuestionTimePoint((int) currentPosition) && (qaView == null || !qaView.isPopupWindowShown())) {
-                            playOrPauseVideo();
                             showQuestion();
                         }
                         //展示访客信息对话框
@@ -2602,7 +2813,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                                 if (trackDurationSeconds > 0) {
                                     tv_current_time.setText(MultiUtils.millsecondsToMinuteSecondStr((trackElapsedSeconds * 1000)));
                                     sb_progress.setProgress((int) trackElapsedSeconds, (int) trackDurationSeconds);
-                                    if (trackElapsedSeconds>=(trackDurationSeconds-2)){
+                                    if (trackElapsedSeconds >= (trackDurationSeconds - 2)) {
                                         mHandler.sendEmptyMessage(STOP_ACTION);
                                     }
                                 }
@@ -2665,6 +2876,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             }
         }
     }
+
     //展示课堂练习
     private void showExercise() {
         exeDialog = new ShowExeDialog(activity, new ExeOperation() {
@@ -2708,6 +2920,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
     //开启广告倒计时
     private void startAdTimer() {
+        cancelAdTimer();
         isStartAdTimer = true;
         adTimer = new Timer();
         adTask = new AdTask();
@@ -2735,12 +2948,20 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
                 activity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        if (player.isPlaying()) {
+                        if (isPlayVideoAd) {
+                            if (player.isPlaying()) {
+                                adTime--;
+                                if (skipAdTime != 0) {
+                                    skipAdTime--;
+                                }
+                            }
+                        } else {
                             adTime--;
                             if (skipAdTime != 0) {
                                 skipAdTime--;
                             }
                         }
+
                         if (adTime < 0) {
                             adTime = 0;
                         }
@@ -2762,11 +2983,17 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
     }
 
     private void playVIdeoAfterAd() {
-        frontAdPosition++;
         ll_ad.setVisibility(View.GONE);
-        playVideoOrAudio(isAudioMode, true);
+        ll_image_ad.setVisibility(View.GONE);
+        if (isPlayEndAd || isShowImgEndAd) {
+            currentPosition = 0;
+            playNextVideo();
+        } else {
+            isPlayFrontAd = false;
+            playVideoOrAudio(isAudioMode, true);
+        }
         cancelAdTimer();
-        isPlayFrontAd = false;
+        isPlayVideoAd = false;
     }
 
     //控制界面的隐藏
@@ -2975,6 +3202,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
         qaView.setQuestion(questions.firstEntry().getValue());
         qaView.show(getWindow().getDecorView().findViewById(android.R.id.content));
+        playOrPauseVideo();
     }
 
     //课堂练习
@@ -2989,7 +3217,7 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
 
     //更新本地数据库记录的播放位置
     private void updateLastPlayPosition() {
-        if (!TextUtils.isEmpty(videoId) && lastVideoPosition != null && isPrepared && !isPlayFrontAd) {
+        if (!TextUtils.isEmpty(videoId) && lastVideoPosition != null && isPrepared && !isPlayVideoAd) {
             lastVideoPosition.setPosition((int) currentPosition);
             videoPositionDBHelper.updateVideoPosition(lastVideoPosition);
         }
@@ -3003,6 +3231,9 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
         }
 
         vrController.onPause();
+        if (pauseVideoAdDialog!=null && pauseVideoAdDialog.isShowing()){
+            pauseVideoAdDialog.pauseVideoAd();
+        }
     }
 
     @Override
@@ -3012,6 +3243,9 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             player.start();
         }
         vrController.onResume();
+        if (pauseVideoAdDialog!=null && pauseVideoAdDialog.isShowing()){
+            pauseVideoAdDialog.resumeVideoAd();
+        }
     }
 
     @Override
@@ -3060,11 +3294,11 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             return;
         }
 
-        if (ll_select_projection_device.getVisibility()==View.VISIBLE){
+        if (ll_select_projection_device.getVisibility() == View.VISIBLE) {
             hideSelectProjectionDevice();
             return;
         }
-        if (ll_projection_screen.getVisibility()==View.VISIBLE){
+        if (ll_projection_screen.getVisibility() == View.VISIBLE) {
             hideProjectionScreenTip();
             return;
         }
@@ -3123,10 +3357,10 @@ public class VrPlayActivity extends Activity implements View.OnClickListener,
             int absY = Math.abs(mY - y);
             int absZ = Math.abs(mZ - z);
 
-            int maxvalue = MultiUtils.getMaxValue(absX,absY,absZ);
+            int maxvalue = MultiUtils.getMaxValue(absX, absY, absZ);
             if (maxvalue > 2 && (sensorTime - lastSensorTime) > 1000) {
                 lastSensorTime = sensorTime;
-                if (isFullScreen){
+                if (isFullScreen) {
                     setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
                 }
             }

@@ -30,4 +30,5 @@
     <color name="danmuControlBac">#DDDDDD</color>
     <color name="layoutBac">#ffffff</color>
     <color name="videoTitle">#000000</color>
+    <color name="closePauseVideoAdBac">#979797</color>
 </resources>

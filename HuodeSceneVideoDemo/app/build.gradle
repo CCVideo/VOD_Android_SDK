@@ -33,9 +33,9 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     //获得场景视频SDK，必须引入
-    implementation 'com.bokecc:vod:3.8.0'
+    implementation 'com.bokecc:vod:3.9.0'
     //必须引用commonLib
-    implementation 'com.bokecc:commonLib:0.1.9'
+    implementation 'com.bokecc:commonLib:0.1.12'
     //必须引用
     implementation 'com.bokecc:drm:1.2.1'
     //使用DWIjkMediaPlayer 倍速播放器引入
